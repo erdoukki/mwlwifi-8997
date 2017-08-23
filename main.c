@@ -139,6 +139,9 @@ int wmm_turbo = 1;
 /* EDMAC Control */
 int EDMAC_Ctrl = 0x0;
 
+/* Tx AMSDU control*/
+int tx_amsdu_enable = 1;
+
 struct region_code_mapping {
 	const char *alpha2;
 	u32 region_code;
@@ -957,6 +960,10 @@ module_param(EDMAC_Ctrl, int, 0);
 MODULE_PARM_DESC(EDMAC_Ctrl, "EDMAC CFG: BIT0:2G_enbl, BIT1:5G_enbl, " \
                              "BIT[4:11]: 2G_Offset, BIT[12:19]:5G_offset, " \
                              "BIT[20:27]:Queue_lock");
+
+
+module_param(tx_amsdu_enable, int, 0);
+MODULE_PARM_DESC(tx_amsdu_enable, "Tx AMSDU enable/disable");
 
 MODULE_DESCRIPTION(MWL_DESC);
 MODULE_VERSION(MWL_DRV_VERSION);

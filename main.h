@@ -3,8 +3,8 @@
 
 /* WMM Turbo mode */
 extern int wmm_turbo;
-
 extern int EDMAC_Ctrl;
+extern int tx_amsdu_enable;
 
 #define MWL_DESC         "Marvell 802.11ac Wireless Network Driver"
 
