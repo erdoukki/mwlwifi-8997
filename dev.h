@@ -347,6 +347,15 @@ struct mwl_roc_info {
 	struct timer_list roc_timer;
 };
 
+struct mwl_wowlan_apinrange_addrIe {
+	u8 address[ETH_ALEN];
+};
+
+struct mwl_wowlan_apinrange_ssidIe {
+	u8 ssidLen;
+	u8 ssid[IEEE80211_MAX_SSID_LEN];
+};
+
 #ifdef CONFIG_DEBUG_FS
 #define MWL_ACCESS_MAC                1
 #define MWL_ACCESS_RF                 2
@@ -473,6 +482,13 @@ struct mwl_priv {
 	int recv_limit;
 
 	struct timer_list period_timer;
+
+	/*wowlan info*/
+	u32 wowlanCond;
+	u16 addrListCnt;
+	u16 ssidListCnt;
+	struct mwl_wowlan_apinrange_addrIe addrList;
+	struct mwl_wowlan_apinrange_ssidIe ssidList;
 
 	/*Remain on channel info*/
 	struct mwl_roc_info roc;
