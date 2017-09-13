@@ -256,7 +256,7 @@ int mwl_fwcmd_set_slot_time(struct ieee80211_hw *hw, bool short_slot)
 
 	return 0;
 }
-/*
+
 int mwl_fwcmd_config_EDMACCtrl(struct ieee80211_hw *hw, int EDMAC_Ctrl)
 {
 	struct hostcmd_cmd_edmac_ctrl *pcmd;
@@ -292,7 +292,7 @@ int mwl_fwcmd_config_EDMACCtrl(struct ieee80211_hw *hw, int EDMAC_Ctrl)
 
 	return 0;
 }
-*/
+
 static int mwl_fwcmd_802_11_radio_control(struct mwl_priv *priv,
 					  bool enable, bool force)
 {
@@ -1767,6 +1767,8 @@ int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, int enbl, int wakeupCon
 	pcmd->gap = cpu_to_le16(WOWLAN_WAKEUP_GAP_CFG);
 	pcmd->wakeupSignal = WOWLAN_WAKEUP_SIGNAL_TYPE;
 	pcmd->wakeUpConditions = cpu_to_le32(wakeupCond);
+	//Enable below code only for debug purpose.
+	//It allows FW to unconditionally upload Rxed beacons.
 	//pcmd->options = cpu_to_le32(0x1);
 
 	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_HOSTSLEEP_CTRL)) {
@@ -1779,13 +1781,6 @@ int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, int enbl, int wakeupCon
 
 	return 0;
 }
-
-
-u16 DBGaddrListCnt = 1;
-u16 DBGssidListCnt = 1;
-struct mwl_wowlan_apinrange_addrIe DBGaddrList = {0x00,0x50,0x43,0x21,0xcf,0x75}; 
-struct mwl_wowlan_apinrange_ssidIe DBGssidList = {0x6, "DBGUTMR"};
-u8  DBGChanList[10] = {0x1,0x6,0xB,0x24,161,149,2,9,52};
 
 int mwl_fwcmd_wowlan_apinrange_config(struct ieee80211_hw *hw)
 {
@@ -1802,29 +1797,21 @@ int mwl_fwcmd_wowlan_apinrange_config(struct ieee80211_hw *hw)
 	pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG);
 	pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
 
-	//for(i = 0; i < priv->addrListCnt; i++) {
-	for(i = 0; i < DBGaddrListCnt; i++) {
-		//memcpy(&pcmd->addrIeList.address[0], &priv->addrList.address[0], 
-		memcpy(&pcmd->addrIeList.address[0], &DBGaddrList.address[0], 
+	for(i = 0; i < priv->addrListCnt; i++) {
+		memcpy(&pcmd->addrIeList.address[0], &priv->addrList.address[0], 
 				sizeof(struct mwl_wowlan_apinrange_addrIe));
 	}
-	//pcmd->addrIeList_Len = priv->addrListCnt * sizeof(struct mwl_wowlan_apinrange_addrIe);
-	pcmd->addrIeList_Len = cpu_to_le16(DBGaddrListCnt * sizeof(struct mwl_wowlan_apinrange_addrIe));
+	pcmd->addrIeList_Len = cpu_to_le16(priv->addrListCnt * sizeof(struct mwl_wowlan_apinrange_addrIe));
 
-	//for(i = 0; i < priv->ssidListCnt; i++) {
-	for(i = 0; i < DBGssidListCnt; i++) {
-		//memcpy(&pcmd->ssidIeList.ssidLen, &priv->ssidList.ssidLen, 
-		memcpy(&pcmd->ssidIeList.ssidLen, &DBGssidList.ssidLen, 
+	for(i = 0; i < priv->ssidListCnt; i++) {
+		memcpy(&pcmd->ssidIeList.ssidLen, &priv->ssidList.ssidLen, 
 				sizeof(struct mwl_wowlan_apinrange_ssidIe));
 	}
-	//pcmd->ssidIeList_Len = priv->ssidListCnt * sizeof(struct mwl_wowlan_apinrange_ssidIe);
-	pcmd->ssidIeList_Len = cpu_to_le16(DBGssidListCnt * sizeof(struct mwl_wowlan_apinrange_ssidIe));
+	pcmd->ssidIeList_Len = cpu_to_le16(priv->ssidListCnt * sizeof(struct mwl_wowlan_apinrange_ssidIe));
 
 	/*Fill in the list of channels to check for AP*/	
 	//memcpy(&pcmd->chanList[0], , );
-	memcpy(&pcmd->chanList[0], &DBGChanList[0], 10);
-	//pcmd->chanListCnt = ;
-	pcmd->chanListCnt = cpu_to_le16(10);
+	//pcmd->chanListCnt = cpu_to_le16(__);
 
 	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG)) {
 		mutex_unlock(&priv->fwcmd_mutex);
@@ -1834,13 +1821,6 @@ int mwl_fwcmd_wowlan_apinrange_config(struct ieee80211_hw *hw)
 
 	mutex_unlock(&priv->fwcmd_mutex);
 
-	return 0;
-}
-
-int mwl_fwcmd_config_EDMACCtrl(struct ieee80211_hw *hw, int EDMAC_Ctrl)
-{
-        //mwl_fwcmd_hostsleep_control(hw, 1, 0x10000);
-	mwl_fwcmd_wowlan_apinrange_config(hw);
 	return 0;
 }
 
