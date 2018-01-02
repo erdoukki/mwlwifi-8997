@@ -30,7 +30,7 @@
 #include "pfu.h"
 
 #define MWL_DRV_NAME     KBUILD_MODNAME
-#define MWL_DRV_VERSION	 "P15-20170829"
+#define MWL_DRV_VERSION	 "P19-20171201"
 
 
 /* Map to 0x80000000 (Bus control) on BAR0 */
@@ -117,8 +117,8 @@
 #define ANTENNA_TX_3                        7
 #define ANTENNA_RX_4_AUTO                   0
 #define ANTENNA_RX_1                        1
-#define ANTENNA_RX_2                        2
-#define ANTENNA_RX_3                        3
+#define ANTENNA_RX_2                        3
+#define ANTENNA_RX_3                        7
 
 /* Band related constants */
 #define BAND_24_CHANNEL_NUM                 14
@@ -347,6 +347,15 @@ struct mwl_roc_info {
 	struct timer_list roc_timer;
 };
 
+struct mwl_wowlan_apinrange_addrIe {
+	u8 address[ETH_ALEN];
+};
+
+struct mwl_wowlan_apinrange_ssidIe {
+	u8 ssidLen;
+	u8 ssid[IEEE80211_MAX_SSID_LEN];
+};
+
 #ifdef CONFIG_DEBUG_FS
 #define MWL_ACCESS_MAC                1
 #define MWL_ACCESS_RF                 2
@@ -427,8 +436,12 @@ struct mwl_priv {
 	struct device_node *pwr_node;
 	bool disable_2g;
 	bool disable_5g;
-	int antenna_tx;
-	int antenna_rx;
+
+	int ant_tx_bmp;
+	int ant_tx_num; // Num of ant in use
+
+	int ant_rx_bmp;
+	int ant_rx_num;	// Num of ant in use
 
 	struct mwl_tx_pwr_tbl tx_pwr_tbl[SYSADPT_MAX_NUM_CHANNELS];
 	bool cdd;
@@ -474,6 +487,13 @@ struct mwl_priv {
 	int recv_limit;
 
 	struct timer_list period_timer;
+
+	/*wowlan info*/
+	u32 wowlanCond;
+	u16 addrListCnt;
+	u16 ssidListCnt;
+	struct mwl_wowlan_apinrange_addrIe addrList;
+	struct mwl_wowlan_apinrange_ssidIe ssidList;
 
 	/*Remain on channel info*/
 	struct mwl_roc_info roc;
@@ -536,7 +556,7 @@ struct mwl_priv {
 	struct thermal_cooling_device *cdev;
 	u32 throttle_state;
 	u32 quiet_period;
-	int temperature;
+	s32 temperature;
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_phy;
