@@ -83,6 +83,7 @@
 #define HOSTCMD_CMD_EDMAC_CTRL					0x1204
 #define HOSTCMD_CMD_HOSTSLEEP_CTRL				0x1205
 #define HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG       0x1206
+#define HOSTCMD_CMD_MONITOR_MODE                0x1207
 
 /* Define general result code for each command */
 #define HOSTCMD_RESULT_OK                       0x0000
@@ -1128,4 +1129,8 @@ struct hostcmd_cmd_post_scan {
 	u8 pload[0];
 } __packed;
 
+struct hostcmd_cmd_monitor_mode {
+    struct hostcmd_header cmd_hdr;
+    u8 enableFlag[1];
+} __packed;
 #endif /* _HOSTCMD_H_ */
