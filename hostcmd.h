@@ -1131,6 +1131,6 @@ struct hostcmd_cmd_post_scan {
 
 struct hostcmd_cmd_monitor_mode {
     struct hostcmd_header cmd_hdr;
-    u8 enableFlag[1];
+    u8 enableFlag;
 } __packed;
 #endif /* _HOSTCMD_H_ */
