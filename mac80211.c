@@ -627,12 +627,13 @@ static int mwl_mac80211_conf_tx(struct ieee80211_hw *hw,
 {
 	struct mwl_priv *priv = hw->priv;
 	int rc = 0;
+	int q;
 
 	if (WARN_ON(queue > SYSADPT_TX_WMM_QUEUES - 1))
 		return -EINVAL;
 
-
-	memcpy(&priv->wmm_params[queue], params, sizeof(*params));
+	q = SYSADPT_TX_WMM_QUEUES - 1 - queue;
+	memcpy(&priv->wmm_params[q], params, sizeof(*params));
 
 	if (!priv->wmm_enabled) {
 		rc = mwl_fwcmd_set_wmm_mode(hw, true);
@@ -640,7 +641,6 @@ static int mwl_mac80211_conf_tx(struct ieee80211_hw *hw,
 	}
 
 	if (!rc) {
-		int q = SYSADPT_TX_WMM_QUEUES - 1 - queue;
 
 
 		wiphy_warn(hw->wiphy, "WMM Params[Q %d]: cwmin=%d cwmax=%d aifs=%d txop=%d\n", q, params->cw_min, params->cw_max, params->aifs, params->txop);
@@ -648,6 +648,11 @@ static int mwl_mac80211_conf_tx(struct ieee80211_hw *hw,
 		rc = mwl_fwcmd_set_edca_params(hw, q,
 					       params->cw_min, params->cw_max,
 					       params->aifs, params->txop);
+	}
+
+	if (queue == IEEE80211_AC_BK){
+		/* All WMM config received, create tc=>txq mapping */
+		wmm_init_tc_to_txq_mapping(priv);
 	}
 
 	return rc;
