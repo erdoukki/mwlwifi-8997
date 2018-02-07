@@ -195,7 +195,10 @@ static int mwl_fwcmd_exec_cmd(struct mwl_priv *priv, unsigned short cmd)
 		priv->in_send_cmd = true;
 		wiphy_debug(priv->hw->wiphy, "DNLD_CMD(# %02x)=> (%04xh, %s)\n",
 			pcmd->seq_num, cmd, mwl_fwcmd_get_cmd_string(cmd));
-		/* mwl_hex_dump((char*)cmd_hdr, cmd_hdr->len); */
+//if (cmd==cpu_to_le16(HOSTCMD_CMD_SET_RF_CHANNEL))
+{
+		mwl_hex_dump((char*)pcmd, pcmd->len);
+}
 		
 		mwl_fwcmd_send_cmd(priv);
         if(priv->cmd_timeout) {
@@ -216,7 +219,13 @@ static int mwl_fwcmd_exec_cmd(struct mwl_priv *priv, unsigned short cmd)
 			INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
 		wiphy_debug(priv->hw->wiphy, " CMD_RESP(# %02x)=> (%04xh)\n",
 			presp->seq_num, presp->cmd);
-		/* mwl_hex_dump((char*)cmd_hdr, cmd_hdr->len); */
+
+#if 1
+//if (presp->cmd==cpu_to_le16(HOSTCMD_CMD_SET_RF_CHANNEL | 0x8000))
+{
+	mwl_hex_dump((char*)presp, presp->len);
+}
+#endif
 	} else {
 		wiphy_warn(priv->hw->wiphy,
 			   "previous command is still running\n");

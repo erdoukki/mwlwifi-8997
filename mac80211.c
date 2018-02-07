@@ -1000,6 +1000,11 @@ static void mwl_mac80211_sw_scan_complete(struct ieee80211_hw *hw,
 					  struct ieee80211_vif *vif)
 {
 	struct mwl_priv *priv = hw->priv;
+	extern unsigned int dbgRxPrbResp, dbgRxBcn;
+
+	wiphy_err(hw->wiphy, "scan_complete: RxPrbResp=%u, RxBcn=%u\n",
+			dbgRxPrbResp,
+			dbgRxBcn);
 
 	priv->sw_scanning = false;
 	mwl_fwcmd_set_post_scan(hw);
