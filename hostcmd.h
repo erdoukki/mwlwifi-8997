@@ -84,6 +84,8 @@
 #define HOSTCMD_CMD_HOSTSLEEP_CTRL				0x1205
 #define HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG       0x1206
 #define HOSTCMD_CMD_MONITOR_MODE                0x1207
+#define HOSTCMD_CMD_DEEPSLEEP                	0x1209
+
 
 /* Define general result code for each command */
 #define HOSTCMD_RESULT_OK                       0x0000
@@ -1133,4 +1135,10 @@ struct hostcmd_cmd_monitor_mode {
     struct hostcmd_header cmd_hdr;
     u8 enableFlag;
 } __packed;
+
+struct hostcmd_cmd_deepsleep {
+    struct hostcmd_header cmd_hdr;
+    u8 enableFlag;
+} __packed;
+
 #endif /* _HOSTCMD_H_ */

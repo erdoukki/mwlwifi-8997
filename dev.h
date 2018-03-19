@@ -390,7 +390,8 @@ struct mwl_if_ops {
 	int (*host_to_card) (struct mwl_priv *, int, struct sk_buff *);
 	int (*cmd_resp_wait_completed) (struct mwl_priv *, unsigned short);
 	int (*wakeup) (struct mwl_priv *);
-	int (*wakeup_complete) (struct mwl_priv *);
+	void (*wakeup_complete) (struct mwl_priv *);
+	void (*enter_deepsleep) (struct mwl_priv *);
 	void (*flush_amsdu)(unsigned long);
 	int (*dbg_info)(struct mwl_priv *, char*, int, int);
 	int (*dbg_reg_access)(struct mwl_priv *, bool);
@@ -411,6 +412,8 @@ struct mwl_if_ops {
 	int (*clean_pcie_ring) (struct mwl_priv *);
 	void (*deaggr_pkt)(struct mwl_priv *, struct sk_buff *);
 	void (*multi_port_resync)(struct mwl_priv *);
+	int (*wakeup_card)(struct mwl_priv *);
+	int (*is_deepsleep)(struct mwl_priv *);
 };
 
 #define MWL_OTP_BUF_SIZE	(256*8)		//258 lines * 8 bytes
@@ -420,6 +423,8 @@ struct otp_data {
 	u32 len;	// Actual size of data in buf[]
 };
 
+#define DS_SLEEP 1
+#define DS_AWAKE 0
 struct mwl_priv {
 	struct ieee80211_hw *hw;
 	struct firmware *fw_ucode;
@@ -487,6 +492,8 @@ struct mwl_priv {
 	int recv_limit;
 
 	struct timer_list period_timer;
+	struct timer_list ds_timer;
+	bool ds_state;
 
 	/*wowlan info*/
 	u32 wowlanCond;
@@ -595,6 +602,8 @@ struct mwl_priv {
 
 	struct workqueue_struct *rx_defer_workq;
 	struct work_struct rx_defer_work;
+	struct workqueue_struct *ds_workq;
+	struct work_struct ds_work;
 	struct sk_buff_head rx_defer_skb_q;
 	bool is_rx_defer_schedule;
 

@@ -622,6 +622,20 @@ void timer_routine(unsigned long data)
 		  msecs_to_jiffies(SYSADPT_TIMER_WAKEUP_TIME));
 }
 
+void ds_routine(unsigned long data)
+{
+	struct mwl_priv *priv = (struct mwl_priv *)data;
+	struct ieee80211_hw *hw = priv->hw;
+	struct ieee80211_conf *conf = &hw->conf;
+
+	if (conf->flags & IEEE80211_CONF_IDLE) {
+		printk("IDLE flag: entering ds\n");
+		priv->ds_state = DS_SLEEP;
+		queue_work(priv->ds_workq, &priv->ds_work);
+		return;
+	}
+}
+
 static int mwl_wl_init(struct mwl_priv *priv)
 {
 	struct ieee80211_hw *hw;
@@ -825,8 +839,37 @@ void mwl_wl_deinit(struct mwl_priv *priv)
 
 	mwl_fwcmd_reset(hw);
 
+	cancel_work_sync(&priv->ds_work);
+	destroy_workqueue(priv->ds_workq);
 }
 EXPORT_SYMBOL_GPL(mwl_wl_deinit);
+
+
+static void mwl_ds_workq(struct work_struct *work)
+{
+    struct mwl_priv  *priv = container_of(work,
+                        struct mwl_priv, ds_work);
+	wiphy_err(priv->hw->wiphy, "workq :enter DS\n");
+	mwl_fwcmd_enter_deepsleep(priv->hw);
+	priv->if_ops.enter_deepsleep(priv);
+}
+
+
+void mwl_restart_ds_timer(struct mwl_priv *priv, bool force)
+{
+	struct ieee80211_conf *conf = &priv->hw->conf;
+
+	if ((conf->flags & IEEE80211_CONF_IDLE) || force) {
+		mod_timer(&priv->ds_timer, jiffies + msecs_to_jiffies(1000));
+	}
+}
+EXPORT_SYMBOL_GPL(mwl_restart_ds_timer);
+
+void mwl_delete_ds_timer(struct mwl_priv *priv)
+{
+	del_timer_sync(&priv->ds_timer);
+}
+EXPORT_SYMBOL_GPL(mwl_delete_ds_timer);
 
 int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 {
@@ -855,6 +898,12 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 		WQ_HIGHPRI | WQ_MEM_RECLAIM | WQ_UNBOUND, 1);
 	INIT_WORK(&priv->rx_defer_work, mwl_rx_defered_handler);
 	skb_queue_head_init(&priv->rx_defer_skb_q);
+
+	priv->ds_workq = alloc_workqueue("mwlwifi-ds_workq",
+                WQ_HIGHPRI | WQ_MEM_RECLAIM | WQ_UNBOUND, 1);
+    INIT_WORK(&priv->ds_work, mwl_ds_workq);
+
+
 
 	/* Save interface specific operations in adapter */
 	memmove(&priv->if_ops, if_ops, sizeof(struct mwl_if_ops));
@@ -895,6 +944,9 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 	release_firmware(priv->fw_ucode);
 
 	mwl_process_of_dts(priv);
+
+	setup_timer(&priv->ds_timer, ds_routine, (unsigned long)priv);
+	mwl_restart_ds_timer(priv, true);
 
 	rc = mwl_wl_init(priv);
 	if (rc) {

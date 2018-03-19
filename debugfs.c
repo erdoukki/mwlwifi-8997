@@ -909,9 +909,63 @@ err:
 }
 
 
+
+static ssize_t mwl_debugfs_deepsleep_read(struct file *file,
+                char __user *ubuf,
+                size_t count, loff_t *ppos)
+{
+	int ret;
+        struct mwl_priv *priv = (struct mwl_priv *)file->private_data;
+	char deepsleep[2];
+	deepsleep[0]= priv->if_ops.is_deepsleep(priv) ? '1' :'0';
+	deepsleep[1]='\n';
+
+	ret = simple_read_from_buffer(ubuf, count, ppos, deepsleep, strlen(deepsleep));
+	return ret;
+}
+
+#if 0
+static ssize_t mwl_debugfs_deepsleep_write(struct file *file,
+                                         const char __user *ubuf,
+                                         size_t count, loff_t *ppos)
+{
+	struct mwl_priv *priv = (struct mwl_priv *)file->private_data;
+	int ret = 0;
+       // char *deepsleep = kmalloc(2, GFP_KERNEL);
+        char deepsleep;
+        if(count > 2)
+	{
+                printk("Invalid Arguments\n\n");
+		return -EINVAL;
+	}
+
+        if (copy_from_user(&deepsleep, ubuf, 1)) {
+                ret = -EFAULT;
+                return ret;
+        }
+
+	printk("ds value = %c  count = %lu\n", deepsleep,count);
+
+	switch(deepsleep)
+	{
+		case '1' : mwl_fwcmd_enter_deepsleep(priv->hw);
+				break;
+		case '0' : mwl_fwcmd_exit_deepsleep(priv->hw);
+				break;
+		default : printk("Invalid argument : 1/0 needed\n");
+			return -EINVAL;
+	}
+
+        return count;
+
+}
+#endif
+
+
 MWLWIFI_DEBUGFS_FILE_READ_OPS(info);
 MWLWIFI_DEBUGFS_FILE_READ_OPS(vif);
 MWLWIFI_DEBUGFS_FILE_READ_OPS(sta);
+MWLWIFI_DEBUGFS_FILE_READ_OPS(deepsleep);
 MWLWIFI_DEBUGFS_FILE_READ_OPS(ampdu);
 MWLWIFI_DEBUGFS_FILE_READ_OPS(device_pwrtbl);
 MWLWIFI_DEBUGFS_FILE_OPS(tx_desc);
@@ -933,6 +987,7 @@ void mwl_debugfs_init(struct ieee80211_hw *hw)
 		return;
 
 	MWLWIFI_DEBUGFS_ADD_FILE(info);
+	MWLWIFI_DEBUGFS_ADD_FILE(deepsleep);
 	MWLWIFI_DEBUGFS_ADD_FILE(vif);
 	MWLWIFI_DEBUGFS_ADD_FILE(sta);
 	MWLWIFI_DEBUGFS_ADD_FILE(ampdu);
