@@ -956,9 +956,8 @@ int mwl_sdio_wakeup_card(struct mwl_priv *priv)
 
 	if (mwl_read_reg(priv, CONFIGURATION_REG, &cr))
 		wiphy_err(priv->hw->wiphy, "read CFG reg failed\n");
-	else
-		wiphy_err(priv->hw->wiphy,
-			    "info: CFG reg val = %d\n", cr);
+
+	wiphy_err(priv->hw->wiphy,"Initiate Card wakeup\n");
 
 	if (mwl_write_reg(priv, CONFIGURATION_REG, (cr | 0x2))) {
 		wiphy_err(priv->hw->wiphy,
@@ -968,9 +967,6 @@ int mwl_sdio_wakeup_card(struct mwl_priv *priv)
 
 	if (mwl_read_reg(priv, CONFIGURATION_REG, &cr))
 		wiphy_err(priv->hw->wiphy, "read CFG reg failed\n");
-	else
-		wiphy_err(priv->hw->wiphy,
-			    "info: After SetWake CFG reg val = %d\n", cr);
 
 	status = wait_event_interruptible(card->wait_deepsleep,
 						(card->is_deepsleep == 0));
@@ -989,12 +985,9 @@ int mwl_sdio_wakeup_card(struct mwl_priv *priv)
 void mwl_sdio_wakeup_complete(struct mwl_priv *priv)
 {
 	struct mwl_sdio_card *card = priv->intf;
-	wiphy_info(priv->hw->wiphy, "cmd: wakeup device complete\n");
 	if (mwl_write_reg(priv, CONFIGURATION_REG, 0))
 		wiphy_err(priv->hw->wiphy,
                             "write CFG reg failed\n");
-	else
-		wiphy_err(priv->hw->wiphy, "info: Card config reg reset complete\n");
 
 	card->is_deepsleep = 0;
 	wake_up_interruptible(&card->wait_deepsleep);

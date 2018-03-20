@@ -113,6 +113,7 @@ char *mwl_fwcmd_get_cmd_string(unsigned short cmd)
 		{ HOSTCMD_CMD_HOSTSLEEP_CTRL, "HostsleepControl" },
 		{ HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG, "ConfigAPInrangeWOWLAN" },
 		{ HOSTCMD_CMD_MONITOR_MODE, "MonitorMode" },
+		{ HOSTCMD_CMD_DEEPSLEEP, "DeepSleep" },
 	};
 
 	max_entries = ARRAY_SIZE(cmds);
@@ -297,7 +298,7 @@ int mwl_fwcmd_enter_deepsleep(struct ieee80211_hw *hw)
         }
 
         mutex_unlock(&priv->fwcmd_mutex);
-
+	wiphy_err(priv->hw->wiphy, "Entered deepsleep\n");
         return 0;
 }
 

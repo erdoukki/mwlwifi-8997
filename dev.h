@@ -494,6 +494,7 @@ struct mwl_priv {
 	struct timer_list period_timer;
 	struct timer_list ds_timer;
 	bool ds_state;
+	bool ds_enable;
 
 	/*wowlan info*/
 	u32 wowlanCond;
@@ -731,6 +732,8 @@ static inline struct mwl_sta *mwl_dev_get_sta(const struct ieee80211_sta *sta)
 	return (struct mwl_sta *)&sta->drv_priv;
 }
 
+void mwl_enable_ds(struct mwl_priv *);
+void mwl_disable_ds(struct mwl_priv *);
 /* Defined in mac80211.c. */
 extern const struct ieee80211_ops mwl_mac80211_ops;
 

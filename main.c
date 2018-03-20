@@ -141,6 +141,7 @@ int EDMAC_Ctrl = 0x0;
 
 /* Tx AMSDU control*/
 int tx_amsdu_enable = 1;
+int ds_enable = 1;
 
 struct region_code_mapping {
 	const char *alpha2;
@@ -628,8 +629,9 @@ void ds_routine(unsigned long data)
 	struct ieee80211_hw *hw = priv->hw;
 	struct ieee80211_conf *conf = &hw->conf;
 
+	if(!priv->ds_enable)
+		return;
 	if (conf->flags & IEEE80211_CONF_IDLE) {
-		printk("IDLE flag: entering ds\n");
 		priv->ds_state = DS_SLEEP;
 		queue_work(priv->ds_workq, &priv->ds_work);
 		return;
@@ -847,9 +849,8 @@ EXPORT_SYMBOL_GPL(mwl_wl_deinit);
 
 static void mwl_ds_workq(struct work_struct *work)
 {
-    struct mwl_priv  *priv = container_of(work,
+	struct mwl_priv  *priv = container_of(work,
                         struct mwl_priv, ds_work);
-	wiphy_err(priv->hw->wiphy, "workq :enter DS\n");
 	mwl_fwcmd_enter_deepsleep(priv->hw);
 	priv->if_ops.enter_deepsleep(priv);
 }
@@ -859,6 +860,8 @@ void mwl_restart_ds_timer(struct mwl_priv *priv, bool force)
 {
 	struct ieee80211_conf *conf = &priv->hw->conf;
 
+	if(!priv->ds_enable)
+		return;
 	if ((conf->flags & IEEE80211_CONF_IDLE) || force) {
 		mod_timer(&priv->ds_timer, jiffies + msecs_to_jiffies(1000));
 	}
@@ -870,6 +873,28 @@ void mwl_delete_ds_timer(struct mwl_priv *priv)
 	del_timer_sync(&priv->ds_timer);
 }
 EXPORT_SYMBOL_GPL(mwl_delete_ds_timer);
+
+void mwl_enable_ds(struct mwl_priv * priv)
+{
+	if (priv->ds_enable)
+		return;
+	priv->ds_enable = true;
+	mwl_restart_ds_timer(priv,false);
+	wiphy_err(priv->hw->wiphy, "Enabled DS\n");
+}
+EXPORT_SYMBOL_GPL(mwl_enable_ds);
+
+void mwl_disable_ds(struct mwl_priv * priv)
+{
+	if(!priv->ds_enable)
+		return;
+	mwl_delete_ds_timer(priv);
+	if(priv->ds_state == DS_SLEEP)
+		priv->if_ops.wakeup_card(priv);
+	priv->ds_enable = 0;
+
+}
+EXPORT_SYMBOL_GPL(mwl_disable_ds);
 
 int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 {
@@ -945,6 +970,7 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 
 	mwl_process_of_dts(priv);
 
+	priv->ds_enable = ds_enable;
 	setup_timer(&priv->ds_timer, ds_routine, (unsigned long)priv);
 	mwl_restart_ds_timer(priv, true);
 
@@ -996,6 +1022,9 @@ MODULE_PARM_DESC(EDMAC_Ctrl, "EDMAC CFG: BIT0:2G_enbl, BIT1:5G_enbl, " \
 
 module_param(tx_amsdu_enable, int, 0);
 MODULE_PARM_DESC(tx_amsdu_enable, "Tx AMSDU enable/disable");
+
+module_param(ds_enable, int, 0);
+MODULE_PARM_DESC(ds_enable, "Deepsleep enable/disable");
 
 MODULE_DESCRIPTION(MWL_DESC);
 MODULE_VERSION(MWL_DRV_VERSION);

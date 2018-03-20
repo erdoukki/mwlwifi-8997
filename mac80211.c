@@ -272,12 +272,9 @@ static int mwl_mac80211_config(struct ieee80211_hw *hw,
 	int rc;
 	struct mwl_priv *priv = hw->priv;
 
-	wiphy_debug(hw->wiphy, "change: 0x%x\n", changed);
 
 #if 1
 	if(changed & IEEE80211_CONF_CHANGE_IDLE) {
-		wiphy_err(hw->wiphy, "11c: idle=%d\n",
-			(conf->flags & IEEE80211_CONF_IDLE));
 		if (conf->flags & IEEE80211_CONF_IDLE) {
 			mwl_restart_ds_timer(priv, false);
 		} else {
