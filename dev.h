@@ -425,6 +425,8 @@ struct otp_data {
 
 #define DS_SLEEP 1
 #define DS_AWAKE 0
+#define PS_SLEEP 1
+#define PS_AWAKE 0
 struct mwl_priv {
 	struct ieee80211_hw *hw;
 	struct firmware *fw_ucode;
@@ -463,6 +465,7 @@ struct mwl_priv {
 	struct mutex fwcmd_mutex;    /* for firmware command         */
 	unsigned short *pcmd_buf;    /* pointer to CmdBuf (virtual)  */
 	dma_addr_t pphys_cmd_buf;    /* pointer to CmdBuf (physical) */
+	unsigned short *pcmd_event_buf;    /* pointer to CmdBuf (virtual)  */
 	bool in_send_cmd;
 	u8 cmd_seq_num; 	/* CMD Seq Number */
 	bool cmd_timeout;
@@ -495,6 +498,8 @@ struct mwl_priv {
 	struct timer_list ds_timer;
 	bool ds_state;
 	bool ds_enable;
+	bool ps_state;
+	struct mutex ps_mutex;
 
 	/*wowlan info*/
 	u32 wowlanCond;

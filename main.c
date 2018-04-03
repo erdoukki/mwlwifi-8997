@@ -713,6 +713,7 @@ static int mwl_wl_init(struct mwl_priv *priv)
 	priv->cmd_timeout = false;
 
 	mutex_init(&priv->fwcmd_mutex);
+	mutex_init(&priv->ps_mutex);
 	spin_lock_init(&priv->tx_desc_lock);
 	spin_lock_init(&priv->vif_lock);
 	spin_lock_init(&priv->sta_lock);
@@ -952,6 +953,8 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 	priv->ant_tx_num = MWL_TXANT_BMP_TO_NUM(priv->ant_tx_bmp);
 	priv->ant_rx_bmp = if_ops->mwl_chip_tbl.antenna_rx;
 	priv->ant_rx_num = MWL_RXANT_BMP_TO_NUM(priv->ant_rx_bmp);
+
+	priv->ps_state=PS_AWAKE;
 
 	SET_IEEE80211_DEV(hw, priv->dev);
 

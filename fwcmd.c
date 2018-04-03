@@ -174,7 +174,8 @@ static int mwl_fwcmd_exec_cmd(struct mwl_priv *priv, unsigned short cmd)
 	might_sleep();
 
 
-	if (priv->ds_state == DS_SLEEP && cmd != HOSTCMD_CMD_DEEPSLEEP)
+	if ((priv->ds_state == DS_SLEEP && cmd != HOSTCMD_CMD_DEEPSLEEP)
+		|| priv->ps_state == PS_SLEEP )
 		priv->if_ops.wakeup_card(priv);
 
 	if (!mwl_fwcmd_chk_adapter(priv)) {
@@ -273,6 +274,35 @@ int mwl_fwcmd_set_slot_time(struct ieee80211_hw *hw, bool short_slot)
 
 	return 0;
 }
+
+int mwl_fwcmd_confirm_ps(struct ieee80211_hw *hw)
+{
+	struct hostcmd_cmd_confirm_ps *pcmd;
+        struct mwl_priv *priv = hw->priv;
+
+        if(priv->if_ops.is_deepsleep(priv))
+                return 0;
+        pcmd = (struct hostcmd_cmd_confirm_ps *)&priv->pcmd_buf[
+                        INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+        mutex_lock(&priv->fwcmd_mutex);
+
+        memset(pcmd, 0x00, sizeof(*pcmd));
+        pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_CONFIRM_PS);
+        pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
+
+        if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_CONFIRM_PS)) {
+                mutex_unlock(&priv->fwcmd_mutex);
+                wiphy_err(priv->hw->wiphy, "failed execution\n");
+                return -EIO;
+        }
+
+        mutex_unlock(&priv->fwcmd_mutex);
+	if(pcmd->status == 0)
+		return 0;
+	return -1;
+}
+EXPORT_SYMBOL_GPL(mwl_fwcmd_confirm_ps);
 
 int mwl_fwcmd_enter_deepsleep(struct ieee80211_hw *hw)
 {
