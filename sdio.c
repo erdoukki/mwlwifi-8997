@@ -1028,7 +1028,13 @@ void mwl_sdio_enter_ps_sleep(struct work_struct *work)
         struct mwl_priv *priv = card->priv;
 	int num,ret;
 
-	printk("In ps sleep enter\n\n");
+	if(!mutex_trylock(&priv->fwcmd_mutex))
+	{
+		printk("returning not able to acquire lock\n\n");
+		mutex_unlock(&priv->ps_mutex);
+		return;
+	}
+	printk("In ps sleep enter:\n");
 
 	mutex_lock(&priv->ps_mutex);
 
@@ -1037,6 +1043,7 @@ void mwl_sdio_enter_ps_sleep(struct work_struct *work)
                 if (skb_queue_len(&priv->txq[num]) > 0)
 		{	wiphy_err(priv->hw->wiphy, "Sleep fail due to tx not empty %d\n",skb_queue_len(&priv->txq[num]));
 			mutex_unlock(&priv->ps_mutex);
+			mutex_unlock(&priv->fwcmd_mutex);
                         return;
 		}
         }
@@ -1045,6 +1052,7 @@ void mwl_sdio_enter_ps_sleep(struct work_struct *work)
 	if (skb_queue_len(&card->rx_data_q) > 0)
 		{	wiphy_err(priv->hw->wiphy, "Sleep fail due to rx not empty\n");
 			mutex_unlock(&priv->ps_mutex);
+			mutex_unlock(&priv->fwcmd_mutex);
 			return;
 		}
 
@@ -1053,6 +1061,7 @@ void mwl_sdio_enter_ps_sleep(struct work_struct *work)
 
 		{	wiphy_err(priv->hw->wiphy,"Sleep fail due to cmd not empty\n");
 			mutex_unlock(&priv->ps_mutex);
+			mutex_unlock(&priv->fwcmd_mutex);
 			return;
 		}
 
