@@ -1822,6 +1822,7 @@ int mwl_fwcmd_powersave_EnblDsbl(struct ieee80211_hw *hw,
 	pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
 	pcmd->action = cpu_to_le16(WL_SET);
 	pcmd->powermode = cpu_to_le16(conf->flags & IEEE80211_CONF_PS);
+	priv->ps_mode = pcmd->powermode;
 
 	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_802_11_PS_MODE)) {
 		mutex_unlock(&priv->fwcmd_mutex);
@@ -1844,6 +1845,8 @@ int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, int enbl, int wakeupCon
 
 	mutex_lock(&priv->fwcmd_mutex);
 
+	if(enbl == 0 && priv->ps_mode )
+		priv->if_ops.wakeup_card(priv);
 	memset(pcmd, 0x00, sizeof(*pcmd));
 	pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_HOSTSLEEP_CTRL);
 	pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));

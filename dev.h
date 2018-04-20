@@ -500,6 +500,7 @@ struct mwl_priv {
 	bool ds_enable;
 	bool ps_state;
 	struct mutex ps_mutex;
+	u16 ps_mode;
 
 	/*wowlan info*/
 	u32 wowlanCond;
