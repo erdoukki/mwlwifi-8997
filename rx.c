@@ -53,7 +53,7 @@ void mwl_rx_prepare_status(struct mwl_rx_desc *pdesc,
 
 	memset(status, 0, sizeof(*status));
 
-	status->signal = -(pdesc->rssi + W836X_RSSI_OFFSET);
+	status->signal = pdesc->rssi - W836X_RSSI_OFFSET;
 
 	rate = le16_to_cpu(pdesc->rate);
 	format = rate & MWL_RX_RATE_FORMAT_MASK;
