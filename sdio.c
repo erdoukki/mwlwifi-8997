@@ -983,7 +983,7 @@ int mwl_sdio_wakeup_card(struct mwl_priv *priv)
 	if (mwl_read_reg(priv, CONFIGURATION_REG, &cr))
 		wiphy_err(priv->hw->wiphy, "read CFG reg failed\n");
 
-	status = wait_event_interruptible(card->wait_deepsleep,
+	status = wait_event(card->wait_deepsleep,
 						(card->is_deepsleep == 0) && (priv->ps_state == PS_AWAKE));
 	if(status != 0) {
 		wiphy_err(priv->hw->wiphy, "info: Card Wakeup failed\n");
@@ -1011,7 +1011,7 @@ void mwl_sdio_wakeup_complete(struct work_struct *work)
 
 	card->is_deepsleep = 0;
 	priv->ps_state = PS_AWAKE;
-	wake_up_interruptible(&card->wait_deepsleep);
+	wake_up(&card->wait_deepsleep);
 }
 
 void mwl_sdio_enter_ps_sleep(struct work_struct *work)
