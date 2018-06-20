@@ -2046,7 +2046,7 @@ static int mwl_write_data_complete(struct mwl_priv *priv,
 		return 0;
 
 	tx_wcb = (struct mwl_tx_desc *) &data[INTF_HEADER_LEN];
-	dma_data = (struct mwl_dma_data *) &data[tx_wcb->pkt_ptr];
+	dma_data = (struct mwl_dma_data *) &data[INTF_HEADER_LEN + tx_wcb->pkt_ptr];
 
 	wh = &dma_data->wh;
 	info = IEEE80211_SKB_CB(skb);
@@ -2322,7 +2322,7 @@ mwl_process_txdesc(struct mwl_priv *priv,
 	tx_desc->type = tx_ctrl->type;
 	tx_desc->xmit_control = tx_ctrl->xmit_control;
 	tx_desc->sap_pkt_info = 0;
-	tx_desc->pkt_ptr = cpu_to_le32(ptr - (u8 *)skb->data);
+	tx_desc->pkt_ptr = cpu_to_le32(ptr - (u8 *)skb->data - INTF_HEADER_LEN);
 	tx_desc->status = 0;
 
 	return;
