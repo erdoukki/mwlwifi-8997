@@ -114,6 +114,8 @@ char *mwl_fwcmd_get_cmd_string(unsigned short cmd)
 		{ HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG, "ConfigAPInrangeWOWLAN" },
 		{ HOSTCMD_CMD_MONITOR_MODE, "MonitorMode" },
 		{ HOSTCMD_CMD_DEEPSLEEP, "DeepSleep" },
+		{ HOSTCMD_CMD_802_11_PS_MODE, "PsMode" },
+		{ HOSTCMD_CMD_CONFIRM_PS, "SleepConfirm" },
 	};
 
 	max_entries = ARRAY_SIZE(cmds);
