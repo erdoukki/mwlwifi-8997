@@ -1837,7 +1837,7 @@ int mwl_fwcmd_powersave_EnblDsbl(struct ieee80211_hw *hw,
 	return 0;
 }
 
-int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, int enbl, int wakeupCond)
+int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, bool hs_enable, bool ds_enable, int wakeupCond)
 {
 	struct mwl_priv *priv = hw->priv;
 	struct hostcmd_cmd_hostsleep_ctrl *pcmd;
@@ -1847,12 +1847,13 @@ int mwl_fwcmd_hostsleep_control(struct ieee80211_hw *hw, int enbl, int wakeupCon
 
 	mutex_lock(&priv->fwcmd_mutex);
 
-	if(enbl == 0 && priv->ps_mode )
+	if(hs_enable == 0 && priv->ps_mode )
 		priv->if_ops.wakeup_card(priv);
 	memset(pcmd, 0x00, sizeof(*pcmd));
 	pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_HOSTSLEEP_CTRL);
 	pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
-	pcmd->HSActivateReq = enbl;
+	pcmd->HS_enable = hs_enable;
+	pcmd->DS_enable = ds_enable;
 	pcmd->gap = cpu_to_le16(WOWLAN_WAKEUP_GAP_CFG);
 	pcmd->wakeupSignal = WOWLAN_WAKEUP_SIGNAL_TYPE;
 	pcmd->wakeUpConditions = cpu_to_le32(wakeupCond);

@@ -1082,6 +1082,98 @@ int mwl_mac80211_get_ant(struct ieee80211_hw *hw, u32 *tx_ant, u32 *rx_ant)
 	return 0;
 }
 
+#if 0
+int mwl_mac80211_suspend(struct ieee80211_hw *hw,
+					struct cfg80211_wowlan *wowlan)
+{
+	struct mwl_priv *priv = hw->priv;
+	int i=0;
+
+	if (wowlan) {
+		priv->wow.wowlanCond = 0;
+
+		if (wowlan->any) {
+			priv->wow.wowlanCond |= MWL_WOW_CND_RX_DATA;
+			priv->wow.wowlanCond |= MWL_WOW_CND_DISCONNECT;
+		}
+		else {
+			if (wowlan->disconnect) {
+				priv->wow.wowlanCond |= MWL_WOW_CND_DISCONNECT;
+			}
+
+			if (wowlan->nd_config) {
+				priv->wow.wowlanCond |= MWL_WOW_CND_AP_INRANGE;
+
+				/* channel set */
+				priv->wow.channelCnt = min(sizeof(priv->wow.channels),
+				                           wowlan->nd_config->n_channels);
+
+				for (i=0; i < priv->wow.channelCnt; i++) {
+					priv->wow.channels[i] = wowlan->nd_config->channels[i]->hw_value;
+				}
+
+				/* ssid */
+				priv->wow.ssidListCnt = min((int)ARRAY_SIZE(priv->wow.ssidList),
+				                            wowlan->nd_config->n_ssids);
+
+				for (i = 0; i < priv->wow.ssidListCnt; i++) {
+					priv->wow.ssidList[i].ssidLen = min(wowlan->nd_config->ssids[i].ssid_len,
+					                                    (u8)sizeof(priv->wow.ssidList[i].ssid));
+					memcpy(priv->wow.ssidList[i].ssid, wowlan->nd_config->ssids[i].ssid,
+					       priv->wow.ssidList[i].ssidLen);
+				}
+			}
+		}
+ 		if (priv->wow.state & WOWLAN_STATE_ENABLED) {
+                        bool ds_status = priv->ds_state ? true : false ;
+                        /*Configure AP detect settings */
+                        if (priv->wow.wowlanCond & MWL_WOW_CND_AP_INRANGE) {
+                                mwl_fwcmd_wowlan_apinrange_config(priv->hw);
+                        }
+
+                        /* Clear results */
+                        memset(&priv->wow.results, 0, sizeof(struct mwl_wowlan_result));
+
+                        /* Enable the Host Sleep */
+                        mwl_fwcmd_hostsleep_control(priv->hw, true, ds_status, priv->wow.wowlanCond) ;
+                        priv->wow.state |= WOWLAN_STATE_HS_SENT;
+
+                        if(ds_status == DS_SLEEP)
+                        {
+                                mwl_delete_ds_timer(priv);
+                                priv->if_ops.enter_deepsleep(priv);
+                        }
+                        priv->ds_state= ds_status;
+		}
+
+	}
+
+	return 0;
+}
+
+int mwl_mac80211_resume(struct ieee80211_hw *hw)
+{
+	struct mwl_priv *priv = hw->priv;
+
+	if (priv->wow.state & WOWLAN_STATE_ENABLED) {
+		/* Disable the Host Sleep */
+		mwl_fwcmd_hostsleep_control(priv->hw, 0, 0, priv->wow.wowlanCond);
+		priv->wow.state &= ~WOWLAN_STATE_HS_SENT;
+
+		if (priv->wow.results.mwl_vif) {
+			/* wow event report before resume call */
+			lrd_report_wowlan_wakeup(priv);
+		}
+		else {
+			priv->wow.jiffies = jiffies;
+		}
+	}
+
+	return 0;
+}
+
+#endif
+
 const struct ieee80211_ops mwl_mac80211_ops = {
 	.tx                         = mwl_mac80211_tx,
 	.start                      = mwl_mac80211_start,
