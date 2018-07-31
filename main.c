@@ -141,7 +141,12 @@ int EDMAC_Ctrl = 0x0;
 
 /* Tx AMSDU control*/
 int tx_amsdu_enable = 1;
+
+/* Deep Sleep control*/
 int ds_enable = 1;
+
+/* DFS Test mode control*/
+int dfs_test_mode = 0;
 
 struct region_code_mapping {
 	const char *alpha2;
@@ -1028,6 +1033,9 @@ MODULE_PARM_DESC(tx_amsdu_enable, "Tx AMSDU enable/disable");
 
 module_param(ds_enable, int, 0);
 MODULE_PARM_DESC(ds_enable, "Deepsleep enable/disable");
+
+module_param(dfs_test_mode, int, 0);
+MODULE_PARM_DESC(dfs_test_mode, "DFS Test mode 0:disable 1:enable");
 
 MODULE_DESCRIPTION(MWL_DESC);
 MODULE_VERSION(MWL_DRV_VERSION);

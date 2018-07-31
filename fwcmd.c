@@ -2880,6 +2880,7 @@ int mwl_fwcmd_set_switch_channel(struct mwl_priv *priv,
 	pcmd->init_count = cpu_to_le32(ch_switch->count + 1);
 	pcmd->chnl_flags = cpu_to_le32(chnl_flags);
 	pcmd->next_ht_extchnl_offset = cpu_to_le32(sec_chnl_offset);
+	pcmd->dfs_test_mode = cpu_to_le32(dfs_test_mode);
 
 	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_SET_SWITCH_CHANNEL)) {
 		mutex_unlock(&priv->fwcmd_mutex);
