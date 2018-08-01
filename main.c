@@ -133,6 +133,10 @@ static char cal_file_name[] = {"mwlwifi/WlanCalData_ext.conf"};
 /* CAL data config file */
 static char *cal_data_cfg = cal_file_name;
 
+static char txpwrlmt_file_name[] = {"mwlwifi/txpwrlmt_cfg.conf"};
+/* TxPwrLmt config file */
+static char *txpwrlmt_data_cfg = txpwrlmt_file_name;
+
 /* WMM Turbo mode */
 int wmm_turbo = 1;
 
@@ -197,6 +201,18 @@ static int mwl_init_firmware(struct mwl_priv *priv, const char *fw_name)
 			wiphy_err(priv->hw->wiphy,
 				  "Cal data request_firmware() failed\n");
 	}
+
+
+    if (txpwrlmt_data_cfg && strncmp(txpwrlmt_data_cfg, "none", strlen("none"))) {
+
+        wiphy_err(priv->hw->wiphy,
+            "Looking for txpwr lmimt conf file <%s>\n", txpwrlmt_data_cfg);
+
+        if ((request_firmware((const struct firmware **)&priv->txpwrlmt_data,
+             txpwrlmt_data_cfg, priv->dev)) < 0)
+            wiphy_err(priv->hw->wiphy,
+                  "Tx Pwr Limit config data request_firmware() failed\n");
+    }
 
 	return rc;
 
@@ -769,6 +785,23 @@ static int mwl_wl_init(struct mwl_priv *priv)
 //		goto err_wl_init;
 	}
 
+    rc = mwl_fwcmd_set_txpwrlmt_cfg_data(hw);
+
+    if(rc) {
+        wiphy_err(hw->wiphy, "%s: fail to download txpwrmlt cfg data\n",
+            MWL_DRV_NAME);
+//      goto err_wl_init;
+    }
+
+    if(priv->txpwrlmt_data) {
+        rc = mwl_fwcmd_get_txpwrlmt_cfg_data(hw);
+        if(rc) {
+           wiphy_err(hw->wiphy, "%s: fail to download txpwrmlt cfg data\n",
+                MWL_DRV_NAME);
+//          goto err_wl_init;
+        }
+        priv->txpwrlmt_data = NULL;
+    }
 
 	if (priv->chip_type == MWL8964)
 		rc = mwl_fwcmd_get_fw_region_code_sc4(hw,
@@ -1017,6 +1050,9 @@ EXPORT_SYMBOL_GPL(mwl_add_card);
 
 module_param(cal_data_cfg, charp, 0);
 MODULE_PARM_DESC(cal_data_cfg, "Calibration data file name");
+
+module_param(txpwrlmt_data_cfg, charp, 0);
+MODULE_PARM_DESC(txpwrlmt_data_cfg, "tx powrr limit conf data file name");
 
 module_param(wmm_turbo, int, 0);
 MODULE_PARM_DESC(wmm_turbo, "WMM Turbo mode 0:Disable 1:Enable");

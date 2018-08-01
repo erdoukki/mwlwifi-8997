@@ -872,6 +872,24 @@ err:
 	return ret;
 }
 
+static ssize_t mwl_debugfs_txpwrlmt_cfg_data_read(struct file *file,
+                char __user *ubuf,
+                        size_t count, loff_t *ppos)
+{
+        struct mwl_priv *priv = (struct mwl_priv *)file->private_data;
+
+            return simple_read_from_buffer(ubuf, count, ppos,
+                                priv->txpwrlmt_cfg_data.buf,
+                                            priv->txpwrlmt_cfg_data.len);
+}
+
+static ssize_t mwl_debugfs_txpwrlmt_cfg_data_write(struct file *file,
+                                         const char __user *ubuf,
+                                         size_t count, loff_t *ppos)
+{
+    return 0;
+}
+
 static ssize_t mwl_debugfs_otp_data_read(struct file *file,
 		char __user *ubuf,
 		size_t count, loff_t *ppos)
@@ -985,6 +1003,7 @@ MWLWIFI_DEBUGFS_FILE_OPS(dfs_radar);
 MWLWIFI_DEBUGFS_FILE_OPS(thermal);
 MWLWIFI_DEBUGFS_FILE_OPS(regrdwr);
 MWLWIFI_DEBUGFS_FILE_OPS(otp_data);
+MWLWIFI_DEBUGFS_FILE_OPS(txpwrlmt_cfg_data);
 
 void mwl_debugfs_init(struct ieee80211_hw *hw)
 {
@@ -1010,6 +1029,7 @@ void mwl_debugfs_init(struct ieee80211_hw *hw)
 	MWLWIFI_DEBUGFS_ADD_FILE(thermal);
 	MWLWIFI_DEBUGFS_ADD_FILE(regrdwr);
 	MWLWIFI_DEBUGFS_ADD_FILE(otp_data);
+	MWLWIFI_DEBUGFS_ADD_FILE(txpwrlmt_cfg_data);
 }
 
 void mwl_debugfs_remove(struct ieee80211_hw *hw)

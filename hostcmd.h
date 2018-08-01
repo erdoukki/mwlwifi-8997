@@ -85,7 +85,8 @@
 #define HOSTCMD_CMD_WOWLAN_AP_INRANGE_CFG       0x1206
 #define HOSTCMD_CMD_MONITOR_MODE                0x1207
 #define HOSTCMD_CMD_DEEPSLEEP                	0x1209
-#define HOSTCMD_CMD_CONFIRM_PS			0x1210
+#define HOSTCMD_CMD_CONFIRM_PS			        0x1210
+#define HOSTCMD_CMD_TXPWRLMT_CFG			    0x1211
 
 
 /* Define general result code for each command */
@@ -196,6 +197,11 @@
 
 #define WOWLAN_WAKEUP_GAP_CFG                   1000 /*msec*/
 #define WOWLAN_WAKEUP_SIGNAL_TYPE               0x1 /* 1: Active High 0: Active Low*/
+
+#define TXPWRLMT_CFG_VERSION_INFO_LEN 	0x4
+#define TXPWRLMT_CFG_MAX_SUBBAND_INFO 	0x5
+#define TXPWR_LMT_CFG_SIG_LEN 			0x4
+#define TXPWR_LMT_CFG_SIGNATURE 		0xA1240E01
 
 enum {
 	WL_DISABLE = 0,
@@ -313,6 +319,32 @@ struct hostcmd_cmd_set_cfg {
 	__le16 data_len;
 	/* Data */
 	u8 data[1];
+} __packed;
+
+/* HOSTCMD_CMD_TXPWRLMT_CFG */
+struct hostcmd_cmd_set_txpwrlmt_cfg {
+    struct hostcmd_header cmd_hdr;
+    /* Action */
+    __le16 action;
+    /*Sub band id*/
+    u8 subband_id;
+    /* Cfg Complete Info*/
+    u8 cfgComplete;
+    /* Data length */
+    __le16 data_len;
+    /*number of entries*/
+    __le16 num_entries;
+    /* Data */
+    u8 data[1];
+} __packed;
+
+struct mwl_txpwrlmt_cfg_entry_hdr {
+    /* subband id */
+    __le16 id;
+    /* length */
+    __le16 len; 
+    /* number of entries */
+    __le16 num_entries;
 } __packed;
 
 /* HOSTCMD_CMD_802_11_GET_STAT */

@@ -427,6 +427,13 @@ struct otp_data {
 	u32 len;	// Actual size of data in buf[]
 };
 
+#define MWL_TXPWRLMT_CFG_BUF_SIZE    (3650)
+
+struct txpwrlmt_cfg_data {
+    u8 buf[MWL_TXPWRLMT_CFG_BUF_SIZE];
+    u32 len;    // Actual size of data in buf[]
+};
+
 #define DS_SLEEP 1
 #define DS_AWAKE 0
 #define PS_SLEEP 1
@@ -591,6 +598,7 @@ struct mwl_priv {
 #endif
 
 	struct firmware *cal_data;
+	struct firmware *txpwrlmt_data;
 
 	/** Write pointer for TXBD ring */
 	unsigned int txbd_wrptr;
@@ -619,6 +627,7 @@ struct mwl_priv {
 	bool is_rx_defer_schedule;
 
 	struct otp_data otp_data;
+	struct txpwrlmt_cfg_data txpwrlmt_cfg_data;
 };
 
 struct beacon_info {

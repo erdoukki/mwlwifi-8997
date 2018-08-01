@@ -80,6 +80,10 @@ int mwl_fwcmd_set_hw_specs(struct ieee80211_hw *hw);
 
 int mwl_fwcmd_set_cfg_data(struct ieee80211_hw *hw, __le16 type);
 
+int mwl_fwcmd_set_txpwrlmt_cfg_data(struct ieee80211_hw *hw);
+
+int mwl_fwcmd_get_txpwrlmt_cfg_data(struct ieee80211_hw *hw);
+
 int mwl_fwcmd_get_stat(struct ieee80211_hw *hw,
 		       struct ieee80211_low_level_stats *stats);
 

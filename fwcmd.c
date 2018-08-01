@@ -1315,6 +1315,170 @@ int mwl_fwcmd_set_cfg_data(struct ieee80211_hw *hw, __le16 type)
 	
 }
 
+static __le16 wlan_parse_txpwrlmt_cfg(const u8 *src, size_t len, 
+                                        __le16 parseLen, u8 *dst)
+{
+    const u8 *ptr;
+    u8 *dptr;
+
+    ptr = src;
+    dptr = dst;
+
+    while ((ptr - src < len) && (dptr - dst < parseLen)) {
+        if (*ptr && (isspace(*ptr) || iscntrl(*ptr))) {
+            ptr++;
+            continue;
+        }
+
+        if (isxdigit(*ptr)) {
+            *dptr++ = simple_strtol(ptr, NULL, 16);
+            ptr += 2;
+        } else {
+            ptr++;
+        }
+    }
+
+    return cpu_to_le16(ptr - src);
+}
+
+int mwl_fwcmd_set_txpwrlmt_cfg_data(struct ieee80211_hw *hw)
+{
+    struct mwl_priv *priv = hw->priv;
+    struct hostcmd_cmd_set_txpwrlmt_cfg *pcmd;
+    struct mwl_txpwrlmt_cfg_entry_hdr hdr;
+    __le16 id, parsed_len, size;
+    u32 txpwrCfgSig;
+    u8 version[TXPWRLMT_CFG_VERSION_INFO_LEN];
+    const u8 *ptr;
+
+#if 0
+    if (priv->mfg_mode)
+        return 0;
+#endif
+
+    if(!priv->txpwrlmt_data)
+        return 0;
+
+    ptr = priv->txpwrlmt_data->data;
+    size = priv->txpwrlmt_data->size;
+
+    /*Parsing TxPwrLmit Conf file Version*/
+    parsed_len = wlan_parse_txpwrlmt_cfg(ptr, size,
+                    TXPWR_LMT_CFG_SIG_LEN, (u8 *)&txpwrCfgSig);
+    ptr += parsed_len;
+    size -= parsed_len;
+
+    if(txpwrCfgSig != TXPWR_LMT_CFG_SIGNATURE) {
+        wiphy_err(hw->wiphy, "txpwrlmt config signature mismatch TxPwrTbl download skipped\n");
+        release_firmware(priv->txpwrlmt_data);
+        priv->txpwrlmt_data = NULL;
+        return 0;
+    }
+
+    /*Parsing TxPwrLmit Conf file Version*/
+    parsed_len = wlan_parse_txpwrlmt_cfg(ptr, size, 
+                    TXPWRLMT_CFG_VERSION_INFO_LEN, version);
+    ptr += parsed_len;
+    size -= parsed_len;
+
+    for(id = 0; id < TXPWRLMT_CFG_MAX_SUBBAND_INFO; id++) {
+        /*Parsing tx pwr cfg subband header info*/
+        parsed_len = wlan_parse_txpwrlmt_cfg(ptr, size, 
+                        sizeof(struct mwl_txpwrlmt_cfg_entry_hdr), (u8 *)&hdr);
+        ptr += parsed_len;
+        size -= parsed_len;
+
+        pcmd = (struct hostcmd_cmd_set_txpwrlmt_cfg *)&priv->pcmd_buf[
+                    INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+        mutex_lock(&priv->fwcmd_mutex);
+
+        memset(pcmd, 0x00, sizeof(*pcmd));
+
+        pcmd->action = cpu_to_le16(HOSTCMD_ACT_GEN_SET);
+        pcmd->subband_id = hdr.id;
+        pcmd->data_len = hdr.len - sizeof(struct mwl_txpwrlmt_cfg_entry_hdr);
+        pcmd->num_entries = hdr.num_entries;
+
+        /*Parsing tx pwr cfg subband header info*/
+        parsed_len = wlan_parse_txpwrlmt_cfg(ptr, size, 
+                        (hdr.len - sizeof(struct mwl_txpwrlmt_cfg_entry_hdr)), pcmd->data);
+        ptr += parsed_len;
+        size -= parsed_len;
+
+        pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_TXPWRLMT_CFG);
+        pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd) +
+        le16_to_cpu(pcmd->data_len) - sizeof(pcmd->data));
+
+        if(size < sizeof(struct mwl_txpwrlmt_cfg_entry_hdr)) {
+            pcmd->cfgComplete = cpu_to_le16(1);
+        }
+
+        if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_TXPWRLMT_CFG)) {
+            mutex_unlock(&priv->fwcmd_mutex);
+            wiphy_err(hw->wiphy, "failed execution\n");
+            release_firmware(priv->txpwrlmt_data);
+            priv->txpwrlmt_data = NULL;
+            return -EIO;
+        }
+        mutex_unlock(&priv->fwcmd_mutex);
+    }
+
+    release_firmware(priv->txpwrlmt_data);
+    //priv->txpwrlmt_data = NULL;
+
+    return 0;
+}
+
+int mwl_fwcmd_get_txpwrlmt_cfg_data(struct ieee80211_hw *hw)
+{
+    struct mwl_priv *priv = hw->priv;
+    struct hostcmd_cmd_set_txpwrlmt_cfg *pcmd;
+    __le16 subband_len, total_len = 0;
+    u8 id;
+
+    for(id = 0; id < TXPWRLMT_CFG_MAX_SUBBAND_INFO; id++) {
+
+        pcmd = (struct hostcmd_cmd_set_txpwrlmt_cfg *)&priv->pcmd_buf[
+                    INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+        mutex_lock(&priv->fwcmd_mutex);
+
+        memset(pcmd, 0x00, sizeof(*pcmd));
+
+        pcmd->action = cpu_to_le16(0);
+        pcmd->subband_id = id;
+        pcmd->data_len = 0;
+        pcmd->num_entries = 0;
+
+        pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_TXPWRLMT_CFG);
+        pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
+
+        if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_TXPWRLMT_CFG)) {
+            mutex_unlock(&priv->fwcmd_mutex);
+            wiphy_err(hw->wiphy, "failed execution\n");
+            return -EIO;
+        }
+        mutex_unlock(&priv->fwcmd_mutex);
+
+        subband_len = pcmd->cmd_hdr.len - cpu_to_le16(sizeof(struct hostcmd_header)) - 2;
+
+        if (total_len <= MWL_TXPWRLMT_CFG_BUF_SIZE) {
+            wiphy_err(hw->wiphy, "Subband len = %d\n", subband_len);
+            memcpy(priv->txpwrlmt_cfg_data.buf + total_len, &pcmd->subband_id, subband_len);
+            total_len += subband_len;
+            priv->txpwrlmt_cfg_data.buf[total_len] = "\n";
+            total_len++;
+            priv->txpwrlmt_cfg_data.len = total_len;
+            //mwl_hex_dump(priv->otp_data.buf, priv->otp_data.len);
+        } else {
+            wiphy_err(hw->wiphy, "Driver TxPwrLmt Cfg buf size is less\n");
+        }
+    }
+    return 0;
+}
+
+
 int mwl_fwcmd_get_stat(struct ieee80211_hw *hw,
 		       struct ieee80211_low_level_stats *stats)
 {
