@@ -541,6 +541,7 @@ struct mwl_priv {
 
 	u32 ap_macids_supported;
 	u32 sta_macids_supported;
+	u32 adhoc_macids_supported;
 	u32 macids_used;
 	u32 running_bsses;           /* bitmap of running BSSes      */
 
@@ -582,7 +583,7 @@ struct mwl_priv {
 	u32 throttle_state;
 	u32 quiet_period;
 	s32 temperature;
-
+	u64 LastBeaconTime;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_phy;
 	u32 reg_type;
@@ -647,6 +648,7 @@ struct beacon_info {
 	u8 *ie_vht_ptr;
 	u8 *ie_country_ptr;
 	u8 *ie_wfd_ptr;
+	u8 *ie_ibss_parms_ptr;
 	u8 ie_ssid_len;
 	u8 ie_wmm_len;
 	u8 ie_wsc_len;
@@ -656,6 +658,7 @@ struct beacon_info {
 	u8 ie_vht_len;
 	u8 ie_country_len;
 	u8 ie_wfd_len;
+	u8 ie_ibss_parms_len;
 };
 
 struct mwl_vif {
