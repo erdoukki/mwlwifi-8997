@@ -29,7 +29,6 @@
 #define WEP_DECRYPT_ICV_ERR     0x04
 #define TKIP_DECRYPT_ICV_ERR    0x08
 
-#define W836X_RSSI_OFFSET       8
 
 /* Receive rate information constants */
 #define RX_RATE_INFO_FORMAT_11A       0
@@ -53,7 +52,7 @@ void mwl_rx_prepare_status(struct mwl_rx_desc *pdesc,
 
 	memset(status, 0, sizeof(*status));
 
-	status->signal = pdesc->rssi - W836X_RSSI_OFFSET;
+	status->signal = pdesc->rssi;
 
 	rate = le16_to_cpu(pdesc->rate);
 	format = rate & MWL_RX_RATE_FORMAT_MASK;
