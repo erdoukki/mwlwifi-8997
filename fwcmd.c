@@ -74,6 +74,7 @@ char *mwl_fwcmd_get_cmd_string(unsigned short cmd)
 		{ HOSTCMD_CMD_SET_EDCA_PARAMS, "SetEDCAParams" },
 		{ HOSTCMD_CMD_802_11H_DETECT_RADAR, "80211hDetectRadar" },
 		{ HOSTCMD_CMD_SET_WMM_MODE, "SetWMMMode" },
+		{ HOSTCMD_CMD_DFS_TEST_MODE, "DFSTestMode" },
 		{ HOSTCMD_CMD_HT_GUARD_INTERVAL, "HtGuardInterval" },
 		{ HOSTCMD_CMD_SET_FIXED_RATE, "SetFixedRate" },
 		{ HOSTCMD_CMD_SET_IES, "SetInformationElements" },
@@ -2476,6 +2477,33 @@ int mwl_fwcmd_set_wmm_mode(struct ieee80211_hw *hw, bool enable)
 	pcmd->action = cpu_to_le16(enable ? WL_ENABLE : WL_DISABLE);
 
 	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_SET_WMM_MODE)) {
+		mutex_unlock(&priv->fwcmd_mutex);
+		wiphy_err(hw->wiphy, "failed execution\n");
+		return -EIO;
+	}
+
+	mutex_unlock(&priv->fwcmd_mutex);
+
+	return 0;
+}
+
+int mwl_fwcmd_dfs_test_mode(struct ieee80211_hw *hw, u16 action, u8 dfs_test_mode_value)
+{
+	struct mwl_priv *priv = hw->priv;
+	struct hostcmd_cmd_dfs_test_mode *pcmd;
+
+	pcmd = (struct hostcmd_cmd_dfs_test_mode *)&priv->pcmd_buf[
+			INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+	mutex_lock(&priv->fwcmd_mutex);
+
+	memset(pcmd, 0x00, sizeof(*pcmd));
+	pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_DFS_TEST_MODE);
+	pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
+	pcmd->action = cpu_to_le16(action);
+	pcmd->dfs_test_mode_value = cpu_to_le16(dfs_test_mode_value);
+
+	if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_DFS_TEST_MODE)) {
 		mutex_unlock(&priv->fwcmd_mutex);
 		wiphy_err(hw->wiphy, "failed execution\n");
 		return -EIO;

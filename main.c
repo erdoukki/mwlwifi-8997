@@ -32,7 +32,7 @@
 #ifdef CONFIG_DEBUG_FS
 #include "debugfs.h"
 #endif
-
+#include "hostcmd.h"
 #include "main.h"
 
 
@@ -844,6 +844,9 @@ static int mwl_wl_init(struct mwl_priv *priv)
 	hw->wiphy->available_antennas_rx = MWL_8997_DEF_RX_ANT_BMP;
 
 	mwl_fwcmd_rf_antenna(hw, priv->ant_tx_bmp, priv->ant_rx_bmp);
+
+	if (dfs_test_mode)
+		mwl_fwcmd_dfs_test_mode(hw, HOSTCMD_ACT_GEN_SET, dfs_test_mode);
 
 	hw->wiphy->interface_modes = 0;
 	hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_AP);
