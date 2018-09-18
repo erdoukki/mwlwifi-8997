@@ -20,9 +20,9 @@
 #ifndef _FWDL_H_
 #define _FWDL_H_
 
-#define FW_CHECK_MSECS                  3
-#define FW_MAX_NUM_CHECKS               0xffff
-
+#define FW_CHECK_MSECS                  5
+#define FW_MAX_NUM_CHECKS               0x3e8
+#define FW_DOWNLOAD_BLOCK_SIZE          256
 
 int mwl_fwdl_download_firmware(struct ieee80211_hw *hw);
 

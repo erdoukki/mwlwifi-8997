@@ -32,6 +32,7 @@
 
 #define HOSTCMD_STA_FWRDY_SIGNATURE     0xF0F1F2F4
 #define HOSTCMD_SOFTAP_FWRDY_SIGNATURE  0xF1F2F4A5
+#define MFG_FW_READY_SIGNATURE  	0xFEDCBA00
 
 #define HOSTCMD_RESP_BIT				0x8000
 
@@ -282,4 +283,10 @@ int mwl_fwcmd_set_monitor_mode(struct ieee80211_hw *hw, bool enable);
 int mwl_fwcmd_enter_deepsleep (struct ieee80211_hw *hw);
 int mwl_fwcmd_exit_deepsleep (struct ieee80211_hw *hw);
 int mwl_fwcmd_confirm_ps (struct ieee80211_hw *hw);
+
+int mwl_fwcmd_mfg(struct mwl_priv *priv, u8 *mfg_cmd, u32 cmd_len);
+int mwl_fwcmd_mfg_print_ver(struct mwl_priv *priv);
+int mwl_fwcmd_mfg_read_mac_reg(struct mwl_priv *priv);
+
+
 #endif /* _FWCMD_H_ */

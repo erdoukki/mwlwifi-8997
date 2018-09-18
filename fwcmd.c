@@ -116,6 +116,7 @@ char *mwl_fwcmd_get_cmd_string(unsigned short cmd)
 		{ HOSTCMD_CMD_DEEPSLEEP, "DeepSleep" },
 		{ HOSTCMD_CMD_802_11_PS_MODE, "PsMode" },
 		{ HOSTCMD_CMD_CONFIRM_PS, "SleepConfirm" },
+		{ HOSTCMD_CMD_MFG_COMMAND, "MfgCmd" },
 	};
 
 	max_entries = ARRAY_SIZE(cmds);
@@ -4186,4 +4187,65 @@ int mwl_fwcmd_set_monitor_mode(struct ieee80211_hw *hw, bool enable)
 	}
 	mutex_unlock(&priv->fwcmd_mutex);
     return 0;
+}
+
+
+
+int mwl_fwcmd_mfg(struct mwl_priv *priv, u8 *mfg_cmd, u32 cmd_len)
+{
+        struct hostcmd_cmd_mfg *pcmd;
+        pcmd = (struct hostcmd_cmd_mfg*)&priv->pcmd_buf[
+                INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+        mutex_lock(&priv->fwcmd_mutex);
+
+        memset(pcmd, 0x00, sizeof(*pcmd));
+        pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_MFG_COMMAND);
+        pcmd->cmd_hdr.len = cpu_to_le16(sizeof(struct hostcmd_header)+cmd_len);
+
+        memcpy(&pcmd->mfg_cmd, mfg_cmd, cmd_len);
+
+        if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_MFG_COMMAND)) {
+                mutex_unlock(&priv->fwcmd_mutex);
+                wiphy_err(priv->hw->wiphy, "failed execution\n");
+                return -EIO;
+        }
+        mutex_unlock(&priv->fwcmd_mutex);
+        return 0;
+}
+
+int mwl_fwcmd_mfg_print_ver(struct mwl_priv *priv)
+{
+        int ret = 0;
+        u8 mfg_cmd[] = {
+                0x2A, 0x10, 0x00, 0x00, // cmd
+                0x00, 0x00,     // action
+                0x00, 0x00,     // dev id
+                0x00, 0x00, 0x00, 0x00, // error
+                0x00, 0x00, 0x00, 0x00, // FwVersion
+                0x00, 0x00, 0x00, 0x00, // MfgVersion
+        };
+
+        ret = mwl_fwcmd_mfg(priv, mfg_cmd, sizeof(mfg_cmd));
+
+        printk("mfg_test: print_version ret=%d\n", ret);
+        return ret;
+}
+
+int mwl_fwcmd_mfg_read_mac_reg(struct mwl_priv *priv)
+{
+        int ret = 0;
+        u8 mfg_cmd[] = {
+                0x01, 0x10, 0x00, 0x00, // cmd
+                0x00, 0x00,     // action
+                0x00, 0x00,     // dev id
+                0x00, 0x00, 0x00, 0x00, // Error
+                0x00, 0xA0, 0x00, 0x80, // Addr
+                0x00, 0x00, 0x00, 0x00, // Data
+        };
+
+        ret = mwl_fwcmd_mfg(priv, mfg_cmd, sizeof(mfg_cmd));
+
+        printk("mfg_test: print_version ret=%d\n", ret);
+        return ret;
 }

@@ -52,6 +52,9 @@
 #define MACREG_REG_GEN_PTR                  0x00000C10
 #define MACREG_REG_INT_CODE                 0x00000C14
 
+#define MACREG_REG_CMDRSP_BUF_LO            0x00000CD0
+#define MACREG_REG_CMDRSP_BUF_HI            0x00000CD4
+
 /* Bit definition for MACREG_REG_A2H_INTERRUPT_CAUSE (A2HRIC) */
 #define MACREG_A2HRIC_BIT_NUM_TX_DONE           (0)
 #define MACREG_A2HRIC_BIT_NUM_RX_RDY            (1)
@@ -175,6 +178,7 @@ enum {
 struct mwl_chip_info {
 	const char *part_name;
 	const char *fw_image;
+	const char *mfg_fw_image;
 	int antenna_tx;
 	int antenna_rx;
 };
@@ -372,6 +376,7 @@ struct mwl_wowlan_apinrange_ssidIe {
 
 struct mwl_priv;
 #define INTF_CMDHEADER_LEN(hd_len)	(hd_len/sizeof(unsigned short))
+#define INTF_HEADER_LEN_MFG 4
 
 struct mwl_if_ops {
 	unsigned short inttf_head_len;
@@ -512,6 +517,8 @@ struct mwl_priv {
 	bool ps_state;
 	struct mutex ps_mutex;
 	u16 ps_mode;
+
+	bool mfg_mode;
 
 	/*wowlan info*/
 	u32 wowlanCond;

@@ -167,6 +167,9 @@ int ds_enable = 1;
 
 /* DFS Test mode control*/
 int dfs_test_mode = 0;
+/* MFG mode control*/
+int mfg_mode = 0;
+
 
 struct region_code_mapping {
 	const char *alpha2;
@@ -757,6 +760,7 @@ static int mwl_wl_init(struct mwl_priv *priv)
 	spin_lock_init(&priv->sta_lock);
 	spin_lock_init(&priv->stream_lock);
 
+
 	rc = mwl_thermal_register(priv);
 	if (rc) {
 		wiphy_err(hw->wiphy, "%s: fail to register thermal framework\n",
@@ -953,6 +957,15 @@ void mwl_disable_ds(struct mwl_priv * priv)
 }
 EXPORT_SYMBOL_GPL(mwl_disable_ds);
 
+void mwl_mfg_init(struct mwl_priv * priv)
+{
+	mutex_init(&priv->fwcmd_mutex);
+	mwl_fwcmd_mfg_print_ver(priv);
+	mwl_fwcmd_mfg_read_mac_reg(priv);
+}
+
+
+
 int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 {
 	struct ieee80211_hw *hw;
@@ -973,6 +986,7 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 
 	priv->fw_device_pwrtbl = false;
 	priv->intf = card;
+	priv->mfg_mode = mfg_mode;
 	
 	priv->is_rx_defer_schedule = false;
 	priv->rx_defer_workq =
@@ -1012,9 +1026,18 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 
 	priv->ps_state=PS_AWAKE;
 
+	if (priv->mfg_mode && (priv->if_ops.inttf_head_len!= INTF_HEADER_LEN_MFG)){
+		wiphy_err(hw->wiphy, "mfg_mode: overriding I/F header len to 4\n");
+		priv->if_ops.inttf_head_len = INTF_HEADER_LEN_MFG;
+       }
+
+
 	SET_IEEE80211_DEV(hw, priv->dev);
 
-	fw_name = if_ops->mwl_chip_tbl.fw_image;
+	if(unlikely(mfg_mode))
+		fw_name = if_ops->mwl_chip_tbl.mfg_fw_image;
+	else
+		fw_name = if_ops->mwl_chip_tbl.fw_image;
 
 	rc = mwl_init_firmware(priv, fw_name);
 
@@ -1027,11 +1050,18 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 	/* firmware is loaded to H/W, it can be released now */
 	release_firmware(priv->fw_ucode);
 
+	if(priv->mfg_mode) {
+		mwl_mfg_init(priv);
+		queue_work(priv->ds_workq, &priv->ds_work);
+		return 0;
+	}
+
 	mwl_process_of_dts(priv);
 
 	priv->ds_enable = ds_enable;
 	setup_timer(&priv->ds_timer, ds_routine, (unsigned long)priv);
 	mwl_restart_ds_timer(priv, true);
+
 
 	rc = mwl_wl_init(priv);
 	if (rc) {
@@ -1090,6 +1120,9 @@ MODULE_PARM_DESC(ds_enable, "Deepsleep enable/disable");
 
 module_param(dfs_test_mode, int, 0);
 MODULE_PARM_DESC(dfs_test_mode, "DFS Test mode 0:disable 1:enable");
+
+module_param(mfg_mode, int, 0);
+MODULE_PARM_DESC(mfg_mode, "MFG mode 0:disable 1:enable");
 
 MODULE_DESCRIPTION(MWL_DESC);
 MODULE_VERSION(MWL_DRV_VERSION);

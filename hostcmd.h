@@ -34,6 +34,7 @@
 #define HOSTCMD_CMD_802_11_PS_MODE              0x0021
 #define HOSTCMD_CMD_802_11_RF_ANTENNA_V2        0x0022
 #define HOSTCMD_CMD_BROADCAST_SSID_ENABLE       0x0050 /* per-vif */
+#define HOSTCMD_CMD_MFG_COMMAND                    0x0089
 #define HOSTCMD_CMD_SET_CFG                     0x008f
 
 #define HOSTCMD_CMD_SET_PRE_SCAN              0x0107
@@ -1191,6 +1192,17 @@ struct hostcmd_cmd_deepsleep {
 struct hostcmd_cmd_confirm_ps {
     struct hostcmd_header cmd_hdr;
     u8 status;
+} __packed;
+
+
+/* Manufacturing CMD */
+struct hostcmd_cmd_mfg {
+    struct hostcmd_header cmd_hdr;
+    u32 mfg_cmd;
+    u16 action;
+    u16 dev_id;
+    u32 error;
+    u8 body[0];
 } __packed;
 
 #endif /* _HOSTCMD_H_ */

@@ -52,6 +52,7 @@ static struct mwl_chip_info mwl_chip_tbl[] = {
 	[MWL8997] = {
 		.part_name	= "88W8997",
 		.fw_image	= MWL_FW_ROOT"/88W8997_pcie.bin",
+		.mfg_fw_image	= MWL_FW_ROOT"/88W8997_pcie_mfg.bin",
 		.antenna_tx	= ANTENNA_TX_2,
 		.antenna_rx	= ANTENNA_RX_2,
 	},
@@ -847,6 +848,7 @@ static int mwl_pcie_init(struct mwl_priv *priv)
 	priv->host_if = MWL_IF_PCIE;
 
 	hw = priv->hw;
+	priv->irq=-1;
 	rc = pci_enable_device(pdev);
 	if (rc) {
 		wiphy_err(hw->wiphy, "%s: cannot enable new PCI device.\n",
@@ -873,6 +875,8 @@ static int mwl_pcie_init(struct mwl_priv *priv)
 	}
 
 	spin_lock_init(&card->intr_status_lock);
+	if(priv->mfg_mode)
+		return rc;
 	rc = mwl_tx_init(hw);
 	if (rc) {
 		wiphy_err(hw->wiphy, "%s: fail to initialize TX\n",
@@ -979,11 +983,11 @@ static void mwl_pcie_cleanup(struct mwl_priv *priv)
 	struct mwl_pcie_card *card = priv->intf;
 	struct pci_dev *pdev = card->pdev;
 
-	mwl_rx_deinit(priv->hw);
-	mwl_tx_deinit(priv->hw);
-
-	mwl_pcie_intr_deinit(priv);
-
+	if(likely(!priv->mfg_mode)) {
+		mwl_rx_deinit(priv->hw);
+		mwl_tx_deinit(priv->hw);
+		mwl_pcie_intr_deinit(priv);
+	}
 	mwl_free_pci_resource(priv);
 	if (pdev) {
 		pci_disable_device(pdev);
@@ -1023,9 +1027,13 @@ static int mwl_pcie_program_firmware(struct mwl_priv *priv)
 	u32 size_fw_downloaded = 0;
 	u32 int_code = 0;
 	u32 len = 0;
-#ifdef SUPPORT_MFG
+#if 1
 	u32 fwreadysignature = priv->mfg_mode ?
 		MFG_FW_READY_SIGNATURE : HOSTCMD_SOFTAP_FWRDY_SIGNATURE;
+
+	u32 fwreadyReg = priv->mfg_mode ?
+                MACREG_REG_SCRATCH3 : MACREG_REG_INT_CODE;
+
 #else
 	u32 fwreadysignature = HOSTCMD_SOFTAP_FWRDY_SIGNATURE;
 #endif
@@ -1138,7 +1146,7 @@ static int mwl_pcie_program_firmware(struct mwl_priv *priv)
 			       card->iobase1 + MACREG_REG_GEN_PTR);
 			usleep_range(FW_CHECK_MSECS * 1000,
 				     FW_CHECK_MSECS * 2000);
-			int_code = readl(card->iobase1 + MACREG_REG_INT_CODE);
+			int_code = readl(card->iobase1 + fwreadyReg);
 		if (!(curr_iteration % 0xff) && (int_code != 0))
 			wiphy_err(hw->wiphy, "%x;", int_code);
 	} while ((curr_iteration) &&
@@ -1157,7 +1165,8 @@ static int mwl_pcie_program_firmware(struct mwl_priv *priv)
 
 err_download:
 
-	mwl_fwcmd_reset(hw);
+	if(!priv->mfg_mode)
+		mwl_fwcmd_reset(hw);
 
 	return -EIO;
 }
@@ -1197,13 +1206,39 @@ static void mwl_pcie_disable_int(struct mwl_priv *priv)
 		       card->iobase1 + MACREG_REG_A2H_INTERRUPT_MASK);
 }
 
+static void mwl_pcie_send_command_for_mfg(struct mwl_priv *priv)
+{
+        struct mwl_pcie_card *card = (struct mwl_pcie_card *)priv->intf;
+        struct hostcmd_header *pcmd;
+
+        pcmd = (struct hostcmd_header *)&priv->pcmd_buf[
+                INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)];
+
+	// XXX: Keeping i/f hdr as 0s for now
+	writel(pcmd->len + priv->if_ops.inttf_head_len, card->iobase1 + MACREG_REG_SCRATCH2);
+
+        writel(priv->pphys_cmd_buf, card->iobase1 + MACREG_REG_CMDRSP_BUF_LO);
+
+        writel(0x0, card->iobase1 + MACREG_REG_CMDRSP_BUF_HI);
+
+        writel(priv->pphys_cmd_buf, card->iobase1 + MACREG_REG_GEN_PTR);
+        writel(MACREG_H2ARIC_BIT_DOOR_BELL,
+               card->iobase1 + MACREG_REG_H2A_INTERRUPT_EVENTS);
+}
+
+
 static void mwl_pcie_send_command(struct mwl_priv *priv)
 {
 	struct mwl_pcie_card *card = (struct mwl_pcie_card *)priv->intf;
 
-	writel(priv->pphys_cmd_buf, card->iobase1 + MACREG_REG_GEN_PTR);
-	writel(MACREG_H2ARIC_BIT_DOOR_BELL,
-	       card->iobase1 + MACREG_REG_H2A_INTERRUPT_EVENTS);
+	if(!priv->mfg_mode) {
+		writel(priv->pphys_cmd_buf, card->iobase1 + MACREG_REG_GEN_PTR);
+		writel(MACREG_H2ARIC_BIT_DOOR_BELL,
+			card->iobase1 + MACREG_REG_H2A_INTERRUPT_EVENTS);
+	}
+	else {
+		mwl_pcie_send_command_for_mfg(priv);
+	}
 }
 
 /* Check command response back or not */
@@ -1216,7 +1251,7 @@ static int mwl_pcie_cmd_resp_wait_completed(struct mwl_priv *priv,
 	do {
         usleep_range(250, 500);        
 		int_code = le16_to_cpu(*((__le16 *)&priv->pcmd_buf[
-				INTF_CMDHEADER_LEN(INTF_HEADER_LEN)+0]));
+				INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)]));
 	} while ((int_code != cmd) && (--curr_iteration));
 
 	if (curr_iteration == 0) {
@@ -1721,6 +1756,7 @@ static int mwl_pcie_register_dev(struct mwl_priv *priv)
 		return rc;
 	}
 
+
 #ifndef NEW_DP
 	tasklet_init(priv->if_ops.ptx_task, (void *)mwl_tx_skbs,
 		(unsigned long)priv->hw);
@@ -1960,8 +1996,12 @@ static void mwl_remove(struct pci_dev *pdev)
 
 	card->surprise_removed = true;
 
+	if(priv->mfg_mode)
+	{
+		mwl_free_pci_resource(priv);
+		return ;
+	}
 	mwl_wl_deinit(priv);
-
 	mwl_pcie_cleanup(priv);
 	mwl_pcie_unregister_dev(priv);
 
