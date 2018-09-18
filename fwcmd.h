@@ -142,6 +142,7 @@ int mwl_fwcmd_set_edca_params(struct ieee80211_hw *hw, u8 index,
 int mwl_fwcmd_set_radar_detect(struct ieee80211_hw *hw, u16 action);
 
 int mwl_fwcmd_set_wmm_mode(struct ieee80211_hw *hw, bool enable);
+int mwl_fwcmd_dfs_test_mode(struct ieee80211_hw *hw, u16 action, u8 dfs_test_mode_value);
 
 int mwl_fwcmd_ht_guard_interval(struct ieee80211_hw *hw, u32 gi_type);
 

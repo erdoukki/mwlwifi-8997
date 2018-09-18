@@ -89,6 +89,7 @@
 #define HOSTCMD_CMD_CONFIRM_PS			        0x1210
 #define HOSTCMD_CMD_TXPWRLMT_CFG			    0x1211
 #define HOSTCMD_CMD_IBSS_START                  0x1212
+#define HOSTCMD_CMD_DFS_TEST_MODE               0x1213
 
 
 /* Define general result code for each command */
@@ -157,6 +158,7 @@
 #define BASTREAM_FLAG_DIRECTION_UPSTREAM        0
 
 /* Define general purpose action */
+#define HOSTCMD_ACT_GEN_GET                     0x0000
 #define HOSTCMD_ACT_GEN_SET                     0x0001
 #define HOSTCMD_ACT_GEN_SET_LIST                0x0002
 #define HOSTCMD_ACT_GEN_GET_LIST                0x0003
@@ -581,6 +583,15 @@ struct hostcmd_cmd_802_11h_detect_radar {
 struct hostcmd_cmd_set_wmm_mode {
 	struct hostcmd_header cmd_hdr;
 	__le16 action;               /* 0->unset, 1->set */
+} __packed;
+
+
+/* HOSTCMD_CMD_DFS_TEST_MODE */
+struct hostcmd_cmd_dfs_test_mode {
+	struct hostcmd_header cmd_hdr;
+	__u16 action;               /* 0->get, 1->set */
+	__u8  dfs_test_mode_value;
+	__u8  reserved;             /* to be used later if required*/
 } __packed;
 
 /* HOSTCMD_CMD_HT_GUARD_INTERVAL */
