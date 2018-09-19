@@ -495,6 +495,7 @@ static int mwl_usb_init(struct mwl_priv *priv)
         struct usb_card_rec *card = (struct usb_card_rec *)priv->intf;
         int num;
 	card->priv = priv;
+	priv->host_if = MWL_IF_USB;
 	priv->dev = &card->udev->dev;
 	priv->chip_type = card->chip_type;                            
         priv->pcmd_buf = kzalloc(CMD_BUF_SIZE, GFP_KERNEL);           
