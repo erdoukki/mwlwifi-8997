@@ -1060,7 +1060,6 @@ int mwl_add_card(void *card, struct mwl_if_ops *if_ops)
 
 	if(priv->mfg_mode) {
 		mwl_mfg_init(priv);
-		queue_work(priv->ds_workq, &priv->ds_work);
 		return 0;
 	}
 
