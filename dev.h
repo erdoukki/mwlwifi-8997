@@ -173,6 +173,12 @@ enum {
 	RX_PAYLOAD_TYPE_EVENT_INFO,
 };
 
+enum {
+	LED_BLINK_RATE_LOW = 0x1,
+	LED_BLINK_RATE_MID,
+	LED_BLINK_RATE_HIGH,
+};
+
 #define CMD_BUF_SIZE     0x4000
 
 struct mwl_chip_info {
@@ -519,6 +525,9 @@ struct mwl_priv {
 	u16 ps_mode;
 
 	bool mfg_mode;
+
+	u8 led_blink_rate;
+	u8 led_blink_enable;
 
 	/*wowlan info*/
 	u32 wowlanCond;

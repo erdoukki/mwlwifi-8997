@@ -989,6 +989,65 @@ static ssize_t mwl_debugfs_ds_ctrl_write(struct file *file,
 
 }
 
+static ssize_t mwl_debugfs_led_ctrl_read(struct file *file,
+                char __user *ubuf,
+                size_t count, loff_t *ppos)
+{
+	int ret;
+        struct mwl_priv *priv = (struct mwl_priv *)file->private_data;
+	char ctrl[7];
+	scnprintf(ctrl, sizeof(ctrl), "%x\n",priv->led_blink_rate);
+
+	ret = simple_read_from_buffer(ubuf, count, ppos, ctrl, strlen(ctrl));
+	return ret;
+}
+
+static ssize_t mwl_debugfs_led_ctrl_write(struct file *file,
+                                         const char __user *ubuf,
+                                         size_t count, loff_t *ppos)
+{
+	struct mwl_priv *priv = (struct mwl_priv *)file->private_data;
+	int ret = 0;
+        char *buf;
+	int rate, enable;
+
+	buf = kzalloc(count, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+
+        if (copy_from_user(buf, ubuf, count)) {
+                ret = -EFAULT;
+		kfree(buf);
+                return ret;
+        }
+
+	ret = sscanf(buf, "%x %x", &enable, &rate);
+
+	if ((ret != 1) && (ret != 2))
+		goto err;
+
+	if( enable  && (ret != 2))
+		goto err;
+
+	if (mwl_fwcmd_led_ctrl(priv->hw, enable, rate))
+		goto err;
+
+	priv->led_blink_enable = enable;
+	if( enable)
+		priv->led_blink_rate = rate;
+	else
+		priv->led_blink_rate = 0;
+
+	kfree(buf);
+	return count;
+
+err :
+	wiphy_err(priv->hw->wiphy," USAGE : LED_CTRL : enable rate \n");
+	kfree(buf);
+	return -EINVAL;
+}
+
 
 MWLWIFI_DEBUGFS_FILE_READ_OPS(info);
 MWLWIFI_DEBUGFS_FILE_READ_OPS(vif);
@@ -1004,6 +1063,7 @@ MWLWIFI_DEBUGFS_FILE_OPS(thermal);
 MWLWIFI_DEBUGFS_FILE_OPS(regrdwr);
 MWLWIFI_DEBUGFS_FILE_OPS(otp_data);
 MWLWIFI_DEBUGFS_FILE_OPS(txpwrlmt_cfg_data);
+MWLWIFI_DEBUGFS_FILE_OPS(led_ctrl);
 
 void mwl_debugfs_init(struct ieee80211_hw *hw)
 {
@@ -1030,6 +1090,7 @@ void mwl_debugfs_init(struct ieee80211_hw *hw)
 	MWLWIFI_DEBUGFS_ADD_FILE(regrdwr);
 	MWLWIFI_DEBUGFS_ADD_FILE(otp_data);
 	MWLWIFI_DEBUGFS_ADD_FILE(txpwrlmt_cfg_data);
+	MWLWIFI_DEBUGFS_ADD_FILE(led_ctrl);
 }
 
 void mwl_debugfs_remove(struct ieee80211_hw *hw)

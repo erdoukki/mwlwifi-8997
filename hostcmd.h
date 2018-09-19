@@ -74,6 +74,7 @@
 #define HOSTCMD_CMD_SET_CDD                     0x1150
 #define HOSTCMD_CMD_CAU_REG_ACCESS              0x1157
 #define HOSTCMD_CMD_GET_TEMP                    0x1159
+#define HOSTCMD_CMD_LED_CTRL   			0x1169
 #define HOSTCMD_CMD_GET_FW_REGION_CODE          0x116A
 #define HOSTCMD_CMD_GET_DEVICE_PWR_TBL          0x116B
 #define HOSTCMD_CMD_GET_FW_REGION_CODE_SC4      0x118A
@@ -90,7 +91,6 @@
 #define HOSTCMD_CMD_TXPWRLMT_CFG			    0x1211
 #define HOSTCMD_CMD_IBSS_START                  0x1212
 #define HOSTCMD_CMD_DFS_TEST_MODE               0x1213
-
 
 /* Define general result code for each command */
 #define HOSTCMD_RESULT_OK                       0x0000
@@ -1214,6 +1214,15 @@ struct hostcmd_cmd_mfg {
     u16 dev_id;
     u32 error;
     u8 body[0];
+} __packed;
+
+struct hostcmd_cmd_led_ctrl {
+	struct hostcmd_header cmd_hdr;
+	u16 action; 		// 0: GET, 1: SET /* currently supports only SET */
+	u8 led_enable;		// 0: disable, 1: Enable
+	u8 led_control;		// 0:HW Control 1: SW control  /*currently only supports SW control*/
+	u8 led_blink_rate;	// 1: Slow, 2: Medium, 3: Fast blink
+	u8 reserved;
 } __packed;
 
 #endif /* _HOSTCMD_H_ */

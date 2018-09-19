@@ -284,6 +284,7 @@ int mwl_fwcmd_set_monitor_mode(struct ieee80211_hw *hw, bool enable);
 int mwl_fwcmd_enter_deepsleep (struct ieee80211_hw *hw);
 int mwl_fwcmd_exit_deepsleep (struct ieee80211_hw *hw);
 int mwl_fwcmd_confirm_ps (struct ieee80211_hw *hw);
+int mwl_fwcmd_led_ctrl (struct ieee80211_hw *hw, u8 enable, u8 rate);
 
 int mwl_fwcmd_mfg(struct mwl_priv *priv, u8 *mfg_cmd, u32 cmd_len);
 int mwl_fwcmd_mfg_print_ver(struct mwl_priv *priv);
