@@ -203,6 +203,7 @@ static int mwl_mac80211_add_interface(struct ieee80211_hw *hw,
 	mwl_vif->iv16 = 1;
 	mwl_vif->iv32 = 0;
 	mwl_vif->keyidx = 0;
+	mwl_vif->tx_key_idx = -1;
 
 	switch (vif->type) {
 	case NL80211_IFTYPE_AP:
@@ -1210,6 +1211,34 @@ static void mwl_set_tsf(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 
 }
 
+void
+mwl_mac80211_set_default_uni_key (struct ieee80211_hw *hw, 
+					struct ieee80211_vif *vif, int idx)
+{
+	struct mwl_vif *mwl_vif;
+	struct ieee80211_key_conf  *key;
+
+	mwl_vif = mwl_dev_get_vif(vif);
+
+	if (idx >= 0 && idx < NUM_WEP_KEYS) {
+
+		if (mwl_vif->wep_key_conf[idx].enabled && mwl_vif->tx_key_idx != idx) {
+			key = (struct ieee80211_key_conf*)mwl_vif->wep_key_conf[idx].key;
+
+			if (!(key->flags & IEEE80211_KEY_FLAG_PAIRWISE)) {
+				mwl_vif->tx_key_idx = idx;
+
+				mwl_fwcmd_encryption_set_tx_key(hw, vif, key);
+			}
+		}
+	}
+	else {
+		mwl_vif->tx_key_idx = -1;
+	}
+
+	return;
+}
+
 const struct ieee80211_ops mwl_mac80211_ops = {
 	.tx                         = mwl_mac80211_tx,
 	.start                      = mwl_mac80211_start,
@@ -1239,5 +1268,6 @@ const struct ieee80211_ops mwl_mac80211_ops = {
 	.set_tsf		            = mwl_set_tsf,
 	.set_antenna		= mwl_mac80211_set_ant,
 	.get_antenna		= mwl_mac80211_get_ant,
+	.set_default_unicast_key    = mwl_mac80211_set_default_uni_key,
 	CFG80211_TESTMODE_CMD(mwl_mac80211_testmode_cmd)
 };
