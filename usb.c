@@ -48,7 +48,8 @@ MODULE_DEVICE_TABLE(usb, mwl_usb_table);
 static struct mwl_chip_info mwl_chip_tbl[] = {
         [MWL8997] = {
                 .part_name      = "88W8997",
-                .fw_image       = MWL_FW_ROOT"/88W8997_usb.bin",
+                .fw_image	= MWL_FW_ROOT"/88W8997_usb.bin",
+                .mfg_fw_image	= MWL_FW_ROOT"/88W8997_usb_mfg.bin",
                 .antenna_tx     = ANTENNA_TX_2,
                 .antenna_rx     = ANTENNA_RX_2,
         },
@@ -226,6 +227,7 @@ static int mwl_usb_probe(struct usb_interface *intf,
 static void mwl_usb_free(struct usb_card_rec *card)
 {
         struct usb_tx_data_port *port;
+	struct mwl_priv * priv = card->priv;
         int i, j;
 
         if (atomic_read(&card->rx_cmd_urb_pending) && card->rx_cmd.urb)
@@ -234,27 +236,31 @@ static void mwl_usb_free(struct usb_card_rec *card)
         usb_free_urb(card->rx_cmd.urb);
         card->rx_cmd.urb = NULL;
 
-        if (atomic_read(&card->rx_data_urb_pending))
-                for (i = 0; i < MWIFIEX_RX_DATA_URB; i++)
-                        if (card->rx_data_list[i].urb)
-                                usb_kill_urb(card->rx_data_list[i].urb);
-
-        for (i = 0; i < MWIFIEX_RX_DATA_URB; i++) {
-                usb_free_urb(card->rx_data_list[i].urb);
-                card->rx_data_list[i].urb = NULL;
-        }
-
-        for (i = 0; i < MWIFIEX_TX_DATA_PORT; i++) {
-                port = &card->port[i];
-                for (j = 0; j < MWIFIEX_TX_DATA_URB; j++) {
-                        usb_kill_urb(port->tx_data_list[j].urb);
-                        usb_free_urb(port->tx_data_list[j].urb);
-                        port->tx_data_list[j].urb = NULL;
-                }
-        }
-
-        usb_free_urb(card->tx_cmd.urb);
+	usb_free_urb(card->tx_cmd.urb);
         card->tx_cmd.urb = NULL;
+
+	if(likely(!priv->mfg_mode)) {
+
+		if (atomic_read(&card->rx_data_urb_pending))
+			for (i = 0; i < MWIFIEX_RX_DATA_URB; i++)
+				if (card->rx_data_list[i].urb)
+					usb_kill_urb(card->rx_data_list[i].urb);
+
+		for (i = 0; i < MWIFIEX_RX_DATA_URB; i++) {
+			usb_free_urb(card->rx_data_list[i].urb);
+			card->rx_data_list[i].urb = NULL;
+		}
+
+		for (i = 0; i < MWIFIEX_TX_DATA_PORT; i++) {
+			port = &card->port[i];
+			for (j = 0; j < MWIFIEX_TX_DATA_URB; j++) {
+				usb_kill_urb(port->tx_data_list[j].urb);
+				usb_free_urb(port->tx_data_list[j].urb);
+				port->tx_data_list[j].urb = NULL;
+			}
+		}
+	}
+
 
         return;
 }
@@ -280,7 +286,8 @@ static void mwl_usb_disconnect(struct usb_interface *intf)
 /*TODO	wait_for_completion(&card->fw_done);*/
 
 	adapter = card->priv;
-	mwl_wl_deinit(adapter);
+	if(likely(!adapter->mfg_mode))
+		mwl_wl_deinit(adapter);
 	/*TODO : deauthenticate and shutdown firmware*/
 
 	mwl_usb_free(card);
@@ -511,6 +518,10 @@ static int mwl_usb_init(struct mwl_priv *priv)
         memset(priv->pcmd_buf, 0x00, CMD_BUF_SIZE);
 	init_waitqueue_head(&card->cmd_wait_q.wait);
         card->cmd_wait_q.status = 0;
+
+	if (priv->mfg_mode)
+		return 0;
+
 	skb_queue_head_init(&card->rx_data_q);
 
 	/* Init the tasklet first in case there are tx/rx interrupts */
@@ -762,6 +773,8 @@ static int mwl_usb_tx_init(struct mwl_priv *adapter)
         card->tx_cmd.urb = usb_alloc_urb(0, GFP_KERNEL);
         if (!card->tx_cmd.urb)
                 return -ENOMEM;
+	if(unlikely(adapter->mfg_mode))
+		return 0;
 
         for (i = 0; i < MWIFIEX_TX_DATA_PORT; i++) {
                 port = &card->port[i];
@@ -959,6 +972,9 @@ static int mwl_usb_rx_init(struct mwl_priv *adapter)
 
         if (mwl_usb_submit_rx_urb(&card->rx_cmd, 2*MWIFIEX_RX_CMD_BUF_SIZE))
                 return -1;
+
+	if(unlikely(adapter->mfg_mode))
+		return 0;
 
         for (i = 0; i < MWIFIEX_RX_DATA_URB; i++) {
                 card->rx_data_list[i].priv = adapter;
