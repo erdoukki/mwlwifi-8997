@@ -30,7 +30,7 @@
 #include "pfu.h"
 
 #define MWL_DRV_NAME     KBUILD_MODNAME
-#define MWL_DRV_VERSION	 "P34-20180919"
+#define MWL_DRV_VERSION	 "P35-20181005"
 
 
 /* Map to 0x80000000 (Bus control) on BAR0 */
