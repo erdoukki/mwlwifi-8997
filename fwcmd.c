@@ -3216,6 +3216,10 @@ int mwl_fwcmd_update_encryption_enable(struct ieee80211_hw *hw,
 		else
 			ether_addr_copy(pcmd->mac_addr, mwl_vif->bssid);
 
+		pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_UPDATE_ENCRYPTION);
+		pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
+		pcmd->cmd_hdr.macid = mwl_vif->macid;
+
 		if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_UPDATE_ENCRYPTION)) {
 			mutex_unlock(&priv->fwcmd_mutex);
 			wiphy_err(hw->wiphy, "failed execution\n");
@@ -3330,6 +3334,10 @@ int mwl_fwcmd_encryption_set_key(struct ieee80211_hw *hw,
 		else
 			ether_addr_copy(pcmd->key_param.mac_addr,
 					mwl_vif->bssid);
+
+		pcmd->cmd_hdr.cmd = cpu_to_le16(HOSTCMD_CMD_UPDATE_ENCRYPTION);
+		pcmd->cmd_hdr.len = cpu_to_le16(sizeof(*pcmd));
+		pcmd->cmd_hdr.macid = mwl_vif->macid;
 
 		if (mwl_fwcmd_exec_cmd(priv, HOSTCMD_CMD_UPDATE_ENCRYPTION)) {
 			mutex_unlock(&priv->fwcmd_mutex);
