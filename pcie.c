@@ -1081,6 +1081,9 @@ static int mwl_pcie_program_firmware(struct mwl_priv *priv)
 			INTF_CMDHEADER_LEN(INTF_HEADER_LEN)],
 		       (fw->data + size_fw_downloaded), len);
 
+		/* Write the command length to cmd_size scratch register */
+		writel(len, card->iobase1 + 0xc40);
+
 		/* this function writes pdata to c10, then write 2 to c18 */
 		mwl_fwdl_trig_pcicmd_bootcode(priv);
 
@@ -1136,17 +1139,26 @@ static int mwl_pcie_program_firmware(struct mwl_priv *priv)
 	 * downloaded fw crashes, this signature checking will fail. This
 	 * part is similar as SC1
 	 */
+
+	if (!priv->mfg_mode) {
 	*((u32 *)&priv->pcmd_buf[INTF_CMDHEADER_LEN(INTF_HEADER_LEN)+1]) = 0;
 	mwl_fwdl_trig_pcicmd(priv);
+	}
+	else {
+		writel(fwreadysignature, card->iobase1 + 0xcf0);
+	}
+
 	curr_iteration = FW_MAX_NUM_CHECKS;
 
 	do {
 		curr_iteration--;
-		writel(HOSTCMD_SOFTAP_MODE,
-			       card->iobase1 + MACREG_REG_GEN_PTR);
-			usleep_range(FW_CHECK_MSECS * 1000,
-				     FW_CHECK_MSECS * 2000);
-			int_code = readl(card->iobase1 + fwreadyReg);
+		if (!priv->mfg_mode) {
+			writel(HOSTCMD_SOFTAP_MODE, card->iobase1 + MACREG_REG_GEN_PTR);
+		}
+
+		usleep_range(FW_CHECK_MSECS * 1000, FW_CHECK_MSECS * 2000);
+
+		int_code = readl(card->iobase1 + fwreadyReg);
 		if (!(curr_iteration % 0xff) && (int_code != 0))
 			wiphy_err(hw->wiphy, "%x;", int_code);
 	} while ((curr_iteration) &&
@@ -1249,7 +1261,7 @@ static int mwl_pcie_cmd_resp_wait_completed(struct mwl_priv *priv,
 	unsigned short int_code = 0;
 
 	do {
-        usleep_range(250, 500);        
+		usleep_range(250, 500);
 		int_code = le16_to_cpu(*((__le16 *)&priv->pcmd_buf[
 				INTF_CMDHEADER_LEN(priv->if_ops.inttf_head_len)]));
 	} while ((int_code != cmd) && (--curr_iteration));
@@ -1334,7 +1346,7 @@ static int mwl_pcie_host_to_card(struct mwl_priv *priv, int desc_num,
 			  "failed to map pci memory!\n");
 		return -ENOMEM;
 	}
-	
+
 	if (!IS_PFU_ENABLED(priv->chip_type))
 		tx_desc->pkt_ptr = cpu_to_le32(dma);
 
@@ -1617,7 +1629,7 @@ void mwl_pfu_tx_done(unsigned long data)
 
 		tasklet_schedule(priv->if_ops.ptx_task);
 		priv->is_tx_done_schedule = false;
-	}	
+	}
 }
 
 void mwl_pcie_tx_done(unsigned long data)
